@@ -62,7 +62,7 @@ data Instruction =
   | DUM Int
   | RAP Int
   | STOP
-  | ST
+  | ST Int Int
   | DBUG
   deriving (Eq, Show, Data, Typeable)
 
