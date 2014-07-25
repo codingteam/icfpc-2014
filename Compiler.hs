@@ -1,18 +1,28 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, DeriveDataTypeable, TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, DeriveDataTypeable, TypeSynonymInstances, FlexibleInstances, OverloadedStrings #-}
 
 import Control.Monad
 import Control.Monad.State
 import qualified Data.Map as M
+import Data.String
 import Data.Generics
 
 data Number =
     Literal Int
-  | Mark String
+  | Mark Mark
   deriving (Eq, Ord, Data, Typeable)
+
+newtype Mark = MkMark String
+  deriving (Eq, Ord, Data, Typeable)
+
+instance Show Mark where
+  show (MkMark name) = name
+
+instance IsString Mark where
+  fromString = MkMark
 
 instance Show Number where
   show (Literal x) = show x
-  show (Mark name) = "." ++ name
+  show (Mark name) = "." ++ show name
 
 data Cell =
     I Number
@@ -47,7 +57,7 @@ data Instruction =
   deriving (Eq, Show, Data, Typeable)
 
 data UInstruction =
-    MarkHere String
+    MarkHere Mark
   | Instruction Instruction
   deriving (Eq, Show, Data, Typeable)
 
@@ -57,7 +67,7 @@ newtype Generator a = Generator {runGenerator :: State GenState a}
 data GenState = GenState {
     gsPosition :: Int
   , gsResult :: [UInstruction]
-  , gsFragments :: M.Map String (Generator ())
+  , gsFragments :: M.Map Mark (Generator ())
   }
 
 resolveMarks :: [UInstruction] -> [Instruction]
@@ -65,7 +75,7 @@ resolveMarks code =
     let (_,marks) = execState (mapM go code) (0, M.empty)
     in  [everywhere (mkT $ resolve marks) instr | Instruction instr <- code]
   where
-    go :: UInstruction -> State (Int, M.Map String Int) ()
+    go :: UInstruction -> State (Int, M.Map Mark Int) ()
     go (MarkHere name) = do
       (offset, st) <- get
       let st' = M.insert name offset st
@@ -76,7 +86,7 @@ resolveMarks code =
     resolve marks (Literal n) = Literal n
     resolve marks (Mark name) =
       case M.lookup name marks of
-        Nothing -> error $ "Cannot resolve mark: " ++ name
+        Nothing -> error $ "Cannot resolve mark: " ++ show name
         Just offset -> Literal offset
 
 emptyGenState :: GenState
@@ -90,7 +100,7 @@ i ins = modify $ \gs ->
 getCurrentOffset :: Generator Int
 getCurrentOffset = gets gsPosition
 
-markHere :: String -> Generator ()
+markHere :: Mark -> Generator ()
 markHere name = modify $ \gs ->
                   gs {gsResult = gsResult gs ++ [MarkHere name] }
 
@@ -124,8 +134,12 @@ instance (ToStack a, ToStack b, ToStack c, ToStack d) => ToStack (a,b,c,d) where
     load x
     i CONS
 
-instance ToStack String where
+instance ToStack Mark where
   load mark = i $ LDF (Mark mark)
+
+instance ToStack a => ToStack [a] where
+  load [] = load (0 :: Int)
+  load (x:xs) = load (x, xs)
 
 printCode :: [Instruction] -> IO ()
 printCode is = forM_ is $ print
@@ -136,19 +150,19 @@ generateG gen = do
   let st' = execState (runGenerator gen) st
   return $ gsResult st'
 
-getFragment :: String -> Generator (Generator ())
+getFragment :: Mark -> Generator (Generator ())
 getFragment name = do
   fragments <- gets gsFragments
   case M.lookup name fragments of
-    Nothing -> fail $ "Unknown fragment: " ++ name
+    Nothing -> fail $ "Unknown fragment: " ++ show name
     Just code -> return code
 
-remember :: String -> Generator () -> Generator ()
+remember :: Mark -> Generator () -> Generator ()
 remember name code = do
   modify $ \st ->
       st {gsFragments = M.insert name code (gsFragments st)}
 
-putHere :: String -> Generator ()
+putHere :: Mark -> Generator ()
 putHere fragmentName = do
   markHere fragmentName
   code <- getFragment fragmentName
@@ -191,7 +205,12 @@ test2 = testGenerator $ do
 -- | Default program in JS GCC interpreter
 test3 :: IO ()
 test3 = testGenerator $ do
-          returnS (0 :: Int, "step")
+          returnS (0 :: Int, "step" :: Mark)
           markHere "step"
           returnS (0 :: Int, 1 :: Int) 
+
+-- | Test lists encoding
+test4 :: IO ()
+test4 = testGenerator $ do
+          load ([1,2,3] :: [Int])
 
