@@ -11,6 +11,13 @@ data Number =
   | Mark Mark
   deriving (Eq, Ord, Data, Typeable)
 
+instance Num Number where
+  fromInteger n = Literal (fromInteger n)
+  (+) = error "(+) is not implemented for Number"
+  (*) = error "(*) is not implemented for Number"
+  abs = error "abs is not implemented for Number"
+  signum = error "signum is not implemented for Number"
+
 newtype Mark = MkMark String
   deriving (Eq, Ord, Data, Typeable)
 
@@ -63,6 +70,49 @@ data UInstruction =
     MarkHere Mark
   | Instruction Instruction
   deriving (Eq, Show, Data, Typeable)
+
+data Expr =
+    Const Number
+  | Arg Int
+  | Parent Int Int
+  | Add Expr Expr
+  | Sub Expr Expr
+  | Mul Expr Expr
+  | Div Expr Expr
+  | Ceq Expr Expr
+  | Cgt Expr Expr
+  | Cgte Expr Expr
+  deriving (Eq, Data, Typeable)
+
+instance Show Expr where
+  show (Const n) = show n
+  show (Arg n) = "(a#" ++ show n ++ ")"
+  show (Parent n m) = "(parent[" ++ show n ++ "]#" ++ show m ++ ")"
+  show (Add x y) = "(" ++ show x ++ " + " ++ show y ++ ")"
+  show (Sub x y) = "(" ++ show x ++ " - " ++ show y ++ ")"
+  show (Mul x y) = "(" ++ show x ++ " * " ++ show y ++ ")"
+  show (Div x y) = "(" ++ show x ++ " / " ++ show y ++ ")"
+  show (Ceq x y) = "(" ++ show x ++ " == " ++ show y ++ ")"
+  show (Cgt x y) = "(" ++ show x ++ " > " ++ show y ++ ")"
+  show (Cgte x y) = "(" ++ show x ++ " >= " ++ show y ++ ")"
+
+liftBinOp :: (ToStack x, ToStack y) => Instruction -> x -> y -> Generator ()
+liftBinOp instr x y = do
+  load x
+  load y
+  i instr
+
+instance ToStack Expr where
+  load (Const n) = load n
+  load (Arg n) = getArg n
+  load (Parent n m) = i (LD n m)
+  load (Add x y) = liftBinOp ADD x y
+  load (Sub x y) = liftBinOp SUB x y
+  load (Mul x y) = liftBinOp MUL x y
+  load (Div x y) = liftBinOp DIV x y
+  load (Ceq x y) = liftBinOp CEQ x y
+  load (Cgt x y) = liftBinOp CGT x y
+  load (Cgte x y) = liftBinOp CGTE x y
 
 newtype Generator a = Generator {runGenerator :: State GenState a}
   deriving (Monad, MonadState GenState)
@@ -243,16 +293,16 @@ test5 = testGenerator $ do
           i RTN
 
           markHere "init"
-          load (42 :: Int) -- init var s
-          getArg 1
-          i CONS
-          i RTN
+          returnS ( 42 :: Int -- init var s
+                  , Arg 1)
 
           markHere "step"
-          getArg 0 -- var s
-          load (1 :: Int)
-          i ADD
-          getParentVar 0 -- var left
-          i CONS
-          i RTN -- return (s+1, left)
+          returnS ( Const 1 `Add` Arg 0 -- s + 1
+                  , Parent 1 0 -- var left
+                  )
+
+-- | Test expressions generation
+test6 :: IO ()
+test6 = testGenerator $ do
+          returnS $ Arg 1 `Mul` (Const 1 `Add` Const 3)
 
