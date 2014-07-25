@@ -72,7 +72,8 @@ data UInstruction =
   deriving (Eq, Show, Data, Typeable)
 
 data Expr =
-    Const Number
+    StackTop
+  | Const Number
   | Arg Int
   | Parent Int Int
   | Add Expr Expr
@@ -85,6 +86,7 @@ data Expr =
   deriving (Eq, Data, Typeable)
 
 instance Show Expr where
+  show StackTop = "(stack)"
   show (Const n) = show n
   show (Arg n) = "(a#" ++ show n ++ ")"
   show (Parent n m) = "(parent[" ++ show n ++ "]#" ++ show m ++ ")"
@@ -103,6 +105,7 @@ liftBinOp instr x y = do
   i instr
 
 instance ToStack Expr where
+  load StackTop = return ()
   load (Const n) = load n
   load (Arg n) = getArg n
   load (Parent n m) = i (LD n m)
@@ -262,6 +265,33 @@ callRecursive addr xs = do
   i (LDF addr)
   i $ RAP $ length xs
 
+getListItem :: Expr -> Int -> Generator ()
+getListItem list ix = do
+    load list
+    go ix
+  where
+    go 0 = i CAR
+    go n = do
+      i CDR
+      go (n-1)
+
+getTupleItem :: Expr -> Int -> Int -> Generator ()
+getTupleItem tuple size ix = do
+    load tuple
+    go ix
+  where
+    go 0
+      | ix == size-1 = return ()
+      | otherwise    = i CAR
+    go n = do
+      i CDR
+      go (n-1)
+
+getList2dItem :: Expr -> Int -> Int -> Generator ()
+getList2dItem list row col = do
+  getListItem list row
+  getListItem StackTop col
+
 -- | First example from specification
 test2 :: IO ()
 test2 = testGenerator $ do
@@ -285,24 +315,37 @@ test4 :: IO ()
 test4 = testGenerator $ do
           load ([1,2,3] :: [Int])
 
+makeDumbAi :: Expr -> Generator ()
+makeDumbAi dir = do
+    callRecursive "init" [ StackItem dir      -- var direction
+                         , StackItem ("step" :: Mark)]
+    i RTN
+
+    markHere "init"
+    returnS ( 42 :: Int -- init var s
+            , Arg 1)
+
+    markHere "step"
+    returnS ( Const 1 `Add` Arg 0 -- s + 1
+            , Parent 1 0 -- var direction
+            )
+
 -- | Dumb AI which always goes left.
 test5 :: IO ()
-test5 = testGenerator $ do
-          callRecursive "init" [ StackItem (3 :: Int)      -- var left
-                               , StackItem ("step" :: Mark)]
-          i RTN
-
-          markHere "init"
-          returnS ( 42 :: Int -- init var s
-                  , Arg 1)
-
-          markHere "step"
-          returnS ( Const 1 `Add` Arg 0 -- s + 1
-                  , Parent 1 0 -- var left
-                  )
+test5 = testGenerator $ makeDumbAi (Const 3)
 
 -- | Test expressions generation
 test6 :: IO ()
 test6 = testGenerator $ do
           returnS $ Arg 1 `Mul` (Const 1 `Add` Const 3)
+
+-- | Dooes the same as test5, but also checks loading/handling 2D lists
+test7 :: IO ()
+test7 = testGenerator $ do
+          let grid = [ [0, 1, 2]
+                     , [3, 4, 5]
+                     ] :: [[Int]]
+          load grid
+          getList2dItem StackTop 1 0
+          makeDumbAi StackTop
 
