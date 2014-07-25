@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, DeriveDataTypeable #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, DeriveDataTypeable, TypeSynonymInstances, FlexibleInstances #-}
 
 import Control.Monad
 import Control.Monad.State
@@ -124,6 +124,9 @@ instance (ToStack a, ToStack b, ToStack c, ToStack d) => ToStack (a,b,c,d) where
     load x
     i CONS
 
+instance ToStack String where
+  load mark = i $ LDF (Mark mark)
+
 printCode :: [Instruction] -> IO ()
 printCode is = forM_ is $ print
 
@@ -169,6 +172,12 @@ call addr x = do
   i (LDF addr)
   i (AP 1)
 
+returnS :: ToStack x => x -> Generator ()
+returnS x = do
+  load x
+  i RTN
+
+-- | First example from specification
 test2 :: IO ()
 test2 = testGenerator $ do
           call (Mark "body") (21 :: Int)
@@ -178,3 +187,11 @@ test2 = testGenerator $ do
           getArg 0
           i ADD
           i RTN
+
+-- | Default program in JS GCC interpreter
+test3 :: IO ()
+test3 = testGenerator $ do
+          returnS (0 :: Int, "step")
+          markHere "step"
+          returnS (0 :: Int, 1 :: Int) 
+
