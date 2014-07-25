@@ -217,12 +217,12 @@ generateG gen = do
   let st' = execState (runGenerator gen) st
   return $ gsResult st'
 
-getFragment :: Mark -> Generator (Generator ())
+getFragment :: Mark -> Generator ()
 getFragment name = do
   fragments <- gets gsFragments
   case M.lookup name fragments of
     Nothing -> fail $ "Unknown fragment: " ++ show name
-    Just code -> return code
+    Just code -> code
 
 remember :: Mark -> Generator () -> Generator ()
 remember name code = do
@@ -232,8 +232,12 @@ remember name code = do
 putHere :: Mark -> Generator ()
 putHere fragmentName = do
   markHere fragmentName
-  code <- getFragment fragmentName
-  code
+  getFragment fragmentName
+
+putAllFragmentsHere :: Generator ()
+putAllFragmentsHere = do
+  marks <- gets (M.keys . gsFragments)
+  forM_ marks putHere
 
 generate :: Generator a -> [Instruction]
 generate gen =
@@ -265,6 +269,23 @@ callRecursive addr xs = do
   i (LDF addr)
   i $ RAP $ length xs
 
+-- | Current implementation requires that if `ifS' was used,
+-- then `putAllFragmentsHere' must be called near the end of program.
+ifS :: Expr -> Generator () -> Generator () -> Generator ()
+ifS cond true false = do
+  offset <- getCurrentOffset
+  load cond
+  let markPrefix = show offset
+      trueMark  = MkMark $ markPrefix ++ "_true"
+      falseMark = MkMark $ markPrefix ++ "_false"
+  i $ SEL (Mark trueMark) (Mark falseMark)
+  remember trueMark $ do
+      true
+      i JOIN
+  remember falseMark $ do
+      false
+      i JOIN
+
 getListItem :: Expr -> Int -> Generator ()
 getListItem list ix = do
     load list
@@ -287,10 +308,15 @@ getTupleItem tuple size ix = do
       i CDR
       go (n-1)
 
-getList2dItem :: Expr -> Int -> Int -> Generator ()
-getList2dItem list row col = do
+getList2dItem' :: Expr -> Int -> Int -> Generator ()
+getList2dItem' list row col = do
   getListItem list row
   getListItem StackTop col
+
+getListItemDecl :: Generator ()
+getListItemDecl = do
+  markHere "getListItem"
+
 
 -- | First example from specification
 test2 :: IO ()
@@ -346,6 +372,19 @@ test7 = testGenerator $ do
                      , [3, 4, 5]
                      ] :: [[Int]]
           load grid
-          getList2dItem StackTop 1 0
+          getList2dItem' StackTop 1 0
           makeDumbAi StackTop
+
+-- | Test conditionals
+test8 :: IO ()
+test8 = testGenerator $ do
+          let x = 1 :: Number
+              y = 2 :: Number
+              right = 1 :: Int
+              left  = 3 :: Int
+          ifS (Const x `Cgt` Const y)
+            (load left)
+            (load right)
+          makeDumbAi StackTop
+          putAllFragmentsHere
 
