@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, DeriveDataTypeable, TypeSynonymInstances, FlexibleInstances, OverloadedStrings #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, DeriveDataTypeable, TypeSynonymInstances, FlexibleInstances, OverloadedStrings, ExistentialQuantification #-}
 
 import Control.Monad
 import Control.Monad.State
@@ -23,6 +23,9 @@ instance IsString Mark where
 instance Show Number where
   show (Literal x) = show x
   show (Mark name) = "." ++ show name
+
+instance IsString Number where
+  fromString mark = Mark (MkMark mark)
 
 data Cell =
     I Number
@@ -107,6 +110,9 @@ markHere name = modify $ \gs ->
 getArg :: Int -> Generator ()
 getArg n = i (LD 0 n)
 
+getParentVar :: Int -> Generator ()
+getParentVar n = i (LD 1 n)
+
 class ToStack x where
   load :: x -> Generator ()
 
@@ -140,6 +146,14 @@ instance ToStack Mark where
 instance ToStack a => ToStack [a] where
   load [] = load (0 :: Int)
   load (x:xs) = load (x, xs)
+
+data StackItem = forall a. (ToStack a, Show a) => StackItem a
+
+instance ToStack StackItem where
+  load (StackItem x) = load x
+
+instance Show StackItem where
+  show (StackItem x) = show x
 
 printCode :: [Instruction] -> IO ()
 printCode is = forM_ is $ print
@@ -191,6 +205,13 @@ returnS x = do
   load x
   i RTN
 
+callRecursive :: Number -> [StackItem] -> Generator ()
+callRecursive addr xs = do
+  i $ DUM $ length xs
+  forM_ xs load
+  i (LDF addr)
+  i $ RAP $ length xs
+
 -- | First example from specification
 test2 :: IO ()
 test2 = testGenerator $ do
@@ -213,4 +234,25 @@ test3 = testGenerator $ do
 test4 :: IO ()
 test4 = testGenerator $ do
           load ([1,2,3] :: [Int])
+
+-- | Dumb AI which always goes left.
+test5 :: IO ()
+test5 = testGenerator $ do
+          callRecursive "init" [ StackItem (3 :: Int)      -- var left
+                               , StackItem ("step" :: Mark)]
+          i RTN
+
+          markHere "init"
+          load (42 :: Int) -- init var s
+          getArg 1
+          i CONS
+          i RTN
+
+          markHere "step"
+          getArg 0 -- var s
+          load (1 :: Int)
+          i ADD
+          getParentVar 0 -- var left
+          i CONS
+          i RTN -- return (s+1, left)
 
