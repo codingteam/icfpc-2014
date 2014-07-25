@@ -39,7 +39,7 @@ data Instruction =
   | LDF Number
   | AP Int
   | RTN
-  | DUM
+  | DUM Int
   | RAP Int
   | STOP
   | ST
