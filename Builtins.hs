@@ -1,4 +1,4 @@
-module Builtins(builtins) where
+module Builtins (builtins, isBuiltin) where
 
 import Control.Monad
 import qualified Data.Map as M
@@ -10,22 +10,26 @@ type Builtin = [SyntaxNode] -> Generator ()
 
 builtins :: M.Map String Builtin
 builtins = M.fromList [("+", add),
-                       ("-", subtract),
+                       ("-", sub),
                        ("*", multiply),
-                       ("/", divide),]
+                       ("/", divide) ]
+
+isBuiltin :: String -> Bool
+isBuiltin name = M.member name builtins
 
 chain :: Instruction -> Builtin
-chain instruction = \args = do
+chain instruction = \args -> do
                 forM_ [1..(length args) - 1] (\_ -> i instruction)
 
 add :: Builtin
 add = chain ADD
 
-subtract :: Builtin
-subtract = chain SUB
+sub :: Builtin
+sub = chain SUB
 
 multiply :: Builtin
 multiply = chain MUL
 
 divide :: Builtin
 divide = chain DIV
+
