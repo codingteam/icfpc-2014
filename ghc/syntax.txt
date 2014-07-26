@@ -1,0 +1,101 @@
+This file is a draft of GHC input language syntax. Written just to get a feel
+of what operators and operations we should support. Translation to GHC
+"assembly" is given along with the constraints on the inputs (in case we decide
+to implement this as Haskell EDSL).
+
+a = b
+    MOV a,b
+    'a' can't be constant
+a++
+    INC a
+    'a' != const
+    'a' != PC
+a--
+    DEC a
+    'a' != const
+    'a' != PC
+a += b
+    ADD a,b
+a -= b
+    SUB a,b
+a *= b
+    MUL a,b
+a /= b
+    DIV a,b
+a &= b
+    AND a,b
+a |= b
+    OR a,b
+a ^= b
+    XOR a,b
+    'a' != const
+    'a' != PC
+if x >= y then CODE [else CODE]
+    JLT PC_OF_CODE,x,y
+if x /= y then CODE [else CODE]
+    LEQ PC_OF_CODE,x,y
+if x <= y then CODE [else CODE]
+    LGT PC_OF_CODE,x,y
+halt
+    HLT
+
+#define DIR_UP    0
+#define DIR_RIGHT 1
+#define DIR_DOWN  2
+#define DIR_LEFT  3
+go UP
+    MOV A,0
+    INT 0
+go RIGHT
+    MOV A,1
+    INT 0
+go DOWN
+    MOV A,2
+    INT 0
+go LEFT
+    MOV A,3
+    INT 0
+
+get_lm_position(NO, x, y)
+    INT NO
+    MOV x, A
+    MOV y, B
+
+this_ghost_idx(id)
+    INT 3
+    MOV id, A
+
+get_ghost_starting_position(idx, x, y)
+    MOV A, idx
+    INT 4
+    MOV x, A
+    MOV y, B
+
+get_ghost_current_position(idx, x, y)
+    MOV A, idx
+    INT 5
+    MOV x, A
+    MOV y, B
+
+get_ghost_params(idx, vitality, direction)
+    MOV A, idx
+    INT 6
+    MOV vitality, A
+    MOV direction, B
+
+#define MAP_WALL       0
+#define MAP_EMPTY      1
+#define MAP_PILL       2
+#define MAP_POWPILL    3
+#define MAP_FRUIT      4
+#define MAP_LMSTARTPOS 5
+#define MAP_GSTARTPOS  6
+
+glance_at(x, y, map_contents)
+    MOV A, x
+    MOV B, y
+    INT 7
+    MOV map_contents, A
+
+debug
+    INT 8
