@@ -20,10 +20,11 @@ newContext name args = Context name $ M.fromList $ zip args [0..]
 data CState = CState {
         csContexts :: [Context]
       , csFunctions :: M.Map String (Compiler ())
+      , csMarkCounter :: Int
       } 
 
 emptyCState :: CState
-emptyCState = CState [] M.empty
+emptyCState = CState [] M.empty 0
 
 newtype Compiler a = Compiler {unCompiler :: StateT CState Generator a}
   deriving (Monad, MonadState CState)
@@ -53,6 +54,13 @@ getVariable name = do
                            Nothing -> Nothing
                            Just n -> Just (ix, n)
 
+newName :: Compiler String
+newName = do
+  st <- get
+  let n = csMarkCounter st + 1
+  put $ st {csMarkCounter = n}
+  return $ "dummy__" ++ show n
+
 compileMain :: SyntaxNode -> Generator ()
 compileMain node = runCompiler $ do
     compileMain' node
@@ -72,18 +80,30 @@ compileFunctionBody name args body =
   inContext name args $
       mapM_ compileNode body
 
+rememberC :: String -> Compiler () -> Compiler ()
+rememberC name code = 
+  modify $ \st ->
+    st {csFunctions = M.insert name code (csFunctions st)}
+
 compileNode :: SyntaxNode -> Compiler ()
 compileNode (Number x) = do
     liftG $ load x
 compileNode (Define name (args) body) =
-  modify $ \st ->
-    st {csFunctions = M.insert name (compileFunctionBody name args body) (csFunctions st)}
+  rememberC name $ compileFunctionBody name args body
 compileNode (Identifier name) = getVariable name
 compileNode (Call funcName args) = do
   forM_ args compileNode
   liftG $ do
       i $ LDF $ Mark $ MkMark funcName
       i $ AP $ length args
-    
+compileNode (Let inits body) = do
+  name <- newName
+  rememberC name $ compileFunctionBody name (getVarNames inits) body
+  forM_ inits $ \(VarInit _ val) -> compileNode val
+  let n = length inits
+  liftG $ do
+    i $ DUM n
+    i $ LDF $ Mark $ MkMark name
+    i $ RAP n
 compileNode x = fail $ "Unsupported node: " ++ show x
 
