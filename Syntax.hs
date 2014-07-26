@@ -9,6 +9,8 @@ data SyntaxNode = Number Int
                 | Call String [SyntaxNode]
                 | Define String [String] [SyntaxNode]
                 | Let [VarInit] [SyntaxNode]
+                | When SyntaxNode [SyntaxNode]
+                | If SyntaxNode [SyntaxNode] [SyntaxNode]
      deriving Show
 
 data VarInit = VarInit String SyntaxNode
@@ -37,6 +39,15 @@ parseList (let_ : initializers : body) | isAtom let_ && (unAtom let_) == "let" =
     where pairs [] = []
           pairs (a:b:c) = (a, b) : pairs c
           inits = map (\(n, e) -> parseVarInit n e) $ pairs (unList initializers)
+parseList [when, sCondition, sBody] | isAtom when && (unAtom when) == "when" =
+  When condition body
+  where condition = parse sCondition
+        body = parseExprList $ unList sBody
+parseList [sIf, sCondition, sThen, sElse] | isAtom sIf && (unAtom sIf) == "if" =
+  If condition then' else'
+  where condition = parse sCondition
+        then' = parseExprList $ unList sThen
+        else' = parseExprList $ unList sElse
 parseList (name : args) | isAtom name =
     Call (unAtom name) $ map parse args
 parseList list = error $ (show list) ++ " is invalid expression"
