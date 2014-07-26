@@ -18,4 +18,4 @@ cabal-version:       >=1.8
 executable gcc-compiler
   main-is: Main.hs
   -- other-modules:
-  build-depends:       base ==4.6.*, mtl ==2.1.*, containers ==0.5.*, syb ==0.4.*
+  build-depends:       base ==4.6.*, mtl ==2.1.*, containers ==0.5.*, syb ==0.4.*, base64-string, pretty, bytestring, binary

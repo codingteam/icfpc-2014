@@ -1,7 +1,10 @@
 module Main where
 
-import GeneratorTests
+import System.Environment (getArgs)
+import Parser
 
 main :: IO ()
 main = do
-    test1
+    args <- getArgs
+    sexpr <- parseSexpr (head args)
+    putStrLn $ show sexpr

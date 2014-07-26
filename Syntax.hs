@@ -1,4 +1,4 @@
 module Syntax where
 
-data SyntaxTree = AAA
-                | BBB
+data SyntaxNode = Number Int
+                | Define String [String] [SyntaxNode]
