@@ -14,8 +14,8 @@ data Context = Context {
       , cVariables :: M.Map String Int
       } deriving (Eq, Show)
 
-emptyContext :: String -> Context
-emptyContext name = Context name M.empty
+newContext :: String -> [String] -> Context
+newContext name args = Context name $ M.fromList $ zip args [0..] 
 
 data CState = CState {
         csContexts :: [Context]
@@ -34,25 +34,42 @@ liftG = Compiler . lift
 runCompiler :: Compiler a -> Generator a
 runCompiler comp = evalStateT (unCompiler comp) emptyCState
 
-inContext :: String -> Compiler a -> Compiler a
-inContext name run = do
-  modify $ \st -> st {csContexts = emptyContext name : csContexts st}
+inContext :: String -> [String] -> Compiler a -> Compiler a
+inContext name args run = do
+  modify $ \st -> st {csContexts = newContext name args : csContexts st}
   result <- run
   modify $ \st -> st {csContexts = drop 1 (csContexts st)}
   return result
 
+getVariable :: String -> Compiler ()
+getVariable name = do
+    contexts <- gets (map cVariables . csContexts)
+    let x = msum $ map (go name) (zip [0..] contexts)
+    case x of
+      Nothing -> fail $ "Unresolved symbol: " ++ name
+      Just (m,n) -> liftG $ i $ LD m n
+  where
+    go name (ix, vars) = case M.lookup name vars of
+                           Nothing -> Nothing
+                           Just n -> Just (ix, n)
+
 compileMain :: SyntaxNode -> Generator ()
-compileMain node = runCompiler $ compileMain' node
+compileMain node = runCompiler $ do
+    compileMain' node
+    -- Write function bodies
+    funcs <- gets csFunctions
+    forM_ (M.keys funcs) $ \name -> do
+      liftG $ markHere (MkMark name)
+      let Just code = M.lookup name funcs
+      code
 
 compileMain' :: SyntaxNode -> Compiler ()
-compileMain' (Define "main" (args) body) =
-  inContext "MAIN" $
-      compileFunctionBody "main" args body
+compileMain' (Define "main" (args) body) = compileFunctionBody "main" args body
 compileMain' x = error $ (show x) ++ " is not a valid main function"
 
 compileFunctionBody :: String -> [String] -> [SyntaxNode] -> Compiler ()
-compileFunctionBody name argNames body =
-  inContext name $
+compileFunctionBody name args body =
+  inContext name args $
       mapM_ compileNode body
 
 compileNode :: SyntaxNode -> Compiler ()
