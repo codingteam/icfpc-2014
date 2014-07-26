@@ -17,9 +17,8 @@ builtins = M.fromList [("+", add),
 isBuiltin :: String -> Bool
 isBuiltin name = M.member name builtins
 
-chain :: Instruction -> Builtin
 chain instruction = \args -> do
-                forM_ [1..(length args) - 1] (\_ -> i instruction)
+                      forM_ [1..(length args) - 1] (\_ -> i instruction)
 
 add :: Builtin
 add = chain ADD
