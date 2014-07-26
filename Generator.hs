@@ -8,6 +8,8 @@ import qualified Data.Map as M
 import Data.String
 import Data.Generics
 
+-- | Number is literal number or pointer to named mark
+-- (to be resolved at the end of generation)
 data Number =
     Literal Int
   | Mark Mark
@@ -20,6 +22,7 @@ instance Num Number where
   abs = error "abs is not implemented for Number"
   signum = error "signum is not implemented for Number"
 
+-- | Trivial wrapper, just to handle overlapping instances for String
 newtype Mark = MkMark String
   deriving (Eq, Ord, Data, Typeable)
 
@@ -36,12 +39,14 @@ instance Show Number where
 instance IsString Number where
   fromString mark = Mark (MkMark mark)
 
+-- | Unused for now
 data Cell =
     I Number
   | Cons Cell Cell
   | Closure Number
   deriving (Eq, Show)
 
+-- | GCC instruction
 data Instruction =
     LDC Number
   | LD Int Int
@@ -70,13 +75,15 @@ data Instruction =
   | DBUG
   deriving (Eq, Show, Data, Typeable)
 
+-- | Unresolved instruction
 data UInstruction =
     MarkHere Mark
   | Instruction Instruction
   deriving (Eq, Show, Data, Typeable)
 
+-- | Ariphmetic expression
 data Expr =
-    StackTop
+    StackTop       -- ^ Top value on data stack. NB: be very carefull when using it in the middle of expression.
   | Const Number
   | Arg Int
   | Parent Int Int
@@ -130,6 +137,7 @@ data GenState = GenState {
   , gsFragments :: M.Map Mark (Generator ())
   }
 
+-- | Resolve mark names in instructions into real addresses
 resolveMarks :: [UInstruction] -> [Instruction]
 resolveMarks code =
     let (_,marks) = execState (mapM go code) (0, M.empty)
@@ -152,6 +160,7 @@ resolveMarks code =
 emptyGenState :: GenState
 emptyGenState = GenState 0 [] M.empty
 
+-- | Generate one instruction
 i :: Instruction -> Generator ()
 i ins = modify $ \gs ->
            gs { gsPosition = gsPosition gs + 1,
@@ -160,16 +169,20 @@ i ins = modify $ \gs ->
 getCurrentOffset :: Generator Int
 getCurrentOffset = gets gsPosition
 
+-- | Put named mark at current offset
 markHere :: Mark -> Generator ()
 markHere name = modify $ \gs ->
                   gs {gsResult = gsResult gs ++ [MarkHere name] }
 
+-- | Get function argument from current frame
 getArg :: Int -> Generator ()
 getArg n = i (LD 0 n)
 
+-- | Get variable from parent frame
 getParentVar :: Int -> Generator ()
 getParentVar n = i (LD 1 n)
 
+-- | Things whcih can be pushed to data stack
 class ToStack x where
   load :: x -> Generator ()
 
@@ -221,6 +234,13 @@ generateG gen = do
   let st' = execState (runGenerator gen) st
   return $ gsResult st'
 
+-- | Rembmeber fragment of code and give it a name.
+remember :: Mark -> Generator () -> Generator ()
+remember name code = do
+  modify $ \st ->
+      st {gsFragments = M.insert name code (gsFragments st)}
+
+-- | Get remembered fragment of code and put it at current offset
 getFragment :: Mark -> Generator ()
 getFragment name = do
   fragments <- gets gsFragments
@@ -228,21 +248,19 @@ getFragment name = do
     Nothing -> fail $ "Unknown fragment: " ++ show name
     Just code -> code
 
-remember :: Mark -> Generator () -> Generator ()
-remember name code = do
-  modify $ \st ->
-      st {gsFragments = M.insert name code (gsFragments st)}
-
+-- | Get remembered fragment of code, put it at current offset with mark.
 putHere :: Mark -> Generator ()
 putHere fragmentName = do
   markHere fragmentName
   getFragment fragmentName
 
+-- | Put all remembered fragments at current offset.
 putAllFragmentsHere :: Generator ()
 putAllFragmentsHere = do
   marks <- gets (M.keys . gsFragments)
   forM_ marks putHere
 
+-- | Run generator.
 generate :: Generator a -> [Instruction]
 generate gen =
   let st = execState (runGenerator gen) emptyGenState
@@ -251,18 +269,22 @@ generate gen =
 testGenerator :: Generator a -> IO ()
 testGenerator gen = printCode $ generate gen
 
+-- | Call function with single argument
 call1 :: ToStack x => Number -> x -> Generator ()
 call1 addr x = do
   load x
   i (LDF addr)
   i (AP 1)
 
+-- | Call function
 call :: Number -> [StackItem] -> Generator ()
 call addr xs = do
   forM_ xs load
   i (LDF addr)
   i $ AP $ length xs
 
+-- | Call recursive function by using RAP.
+-- Not sure when should we use this.
 callRecursive :: Number -> [StackItem] -> Generator ()
 callRecursive addr xs = do
   i $ DUM $ length xs
@@ -270,6 +292,8 @@ callRecursive addr xs = do
   i (LDF addr)
   i $ RAP $ length xs
 
+-- | Call tail-recursive function by using TRAP.
+-- Not sure when should we use this.
 callTailRecursive :: Number -> [StackItem] -> Generator ()
 callTailRecursive addr xs = do
   i $ DUM $ length xs
@@ -277,12 +301,14 @@ callTailRecursive addr xs = do
   i (LDF addr)
   i $ TRAP $ length xs
 
+-- | Return value from function
 returnS :: ToStack x => x -> Generator ()
 returnS x = do
   load x
   i RTN
 
--- | Current implementation requires that if `ifS' was used,
+-- | Conditional operator.
+-- Current implementation requires that if `ifS' was used,
 -- then `putAllFragmentsHere' must be called near the end of program.
 ifS :: Expr -> Generator () -> Generator () -> Generator ()
 ifS cond true false = do
@@ -299,7 +325,8 @@ ifS cond true false = do
       false
       i JOIN
 
--- | Do not know yet how to implement `break' or `continue'
+-- | do {...} while (..) loop.
+-- Do not know yet how to implement `break' or `continue'
 doWhile :: Expr -> Generator () -> Generator ()
 doWhile cond body = do
   offset <- getCurrentOffset
@@ -322,7 +349,11 @@ getListItem list ix = do
       i CDR
       go (n-1)
 
-getTupleItem :: Expr -> Int -> Int -> Generator ()
+-- | Get item from tuple
+getTupleItem :: Expr  -- ^ Tuple
+             -> Int   -- ^ Tuple size
+             -> Int   -- ^ Item index
+             -> Generator ()
 getTupleItem tuple size ix = do
     load tuple
     go ix
