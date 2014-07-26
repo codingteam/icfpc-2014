@@ -7,6 +7,7 @@ import Control.Monad.State
 import Data.Maybe
 import qualified Data.Map as M
 
+import AST
 import Syntax
 import Generator
 import Builtins

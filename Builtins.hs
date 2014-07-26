@@ -1,12 +1,12 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, DeriveDataTypeable, TypeSynonymInstances, FlexibleInstances, OverloadedStrings, ExistentialQuantification #-}
 
-module Builtins (builtins, isBuiltin, stdLibrary) where
+module Builtins (Builtin, builtins, isBuiltin, stdLibrary, getListItemDecl) where
 
 import Control.Monad
 import qualified Data.Map as M
 
 import Generator
-import Syntax
+import AST
 
 type Builtin = [SyntaxNode] -> Generator ()
 
@@ -20,7 +20,9 @@ builtins = M.fromList [("+", add),
                        (">=", greaterOrEqual),
                        ("pair", pair),
                        ("car", car),
-                       ("cdr", cdr)]
+                       ("cdr", cdr),
+                       ("list", list),
+                       ("dbug", dbug) ]
 
 isBuiltin :: String -> Bool
 isBuiltin name = M.member name builtins
@@ -32,6 +34,9 @@ unary instruction _     = fail $ "Invalid function call with " ++ (show instruct
 binary :: Instruction -> [SyntaxNode] -> Generator ()
 binary instruction [arg1, arg2] = i instruction
 binary instruction _            = fail $ "Invalid function call with " ++ (show instruction)
+
+dbug :: Builtin
+dbug = unary DBUG
 
 add :: Builtin
 add = binary ADD
@@ -63,6 +68,13 @@ car = unary CAR
 cdr :: Builtin
 cdr = unary CDR
 
+list :: Builtin
+list xs = listDecl (length xs)
+
+listDecl :: Int -> Generator ()
+listDecl n = do
+  load (0 :: Int)
+  replicateM_ n $ i CONS
 
 --- Library
 
@@ -84,5 +96,4 @@ getListItemDecl = do
         call (Mark "getListItem_go") [StackItem $ StackTop, StackItem $ Arg 1 `Sub` Const 1]
     )
   i RTN
-
 

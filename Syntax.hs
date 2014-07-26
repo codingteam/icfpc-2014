@@ -2,19 +2,9 @@ module Syntax where
 
 import Codec.Sexpr
 import Data.Char(isDigit)
+
 import Parser
-
-data SyntaxNode = Number Int
-                | Identifier String
-                | Call String [SyntaxNode]
-                | Define String [String] [SyntaxNode]
-                | Let [VarInit] [SyntaxNode]
-                | When SyntaxNode [SyntaxNode]
-                | If SyntaxNode [SyntaxNode] [SyntaxNode]
-     deriving Show
-
-data VarInit = VarInit String SyntaxNode
-    deriving Show
+import AST
 
 getVarNames :: [VarInit] -> [String]
 getVarNames = map (\(VarInit name _) -> name)

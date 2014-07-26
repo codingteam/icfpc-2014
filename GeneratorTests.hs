@@ -3,6 +3,7 @@
 module GeneratorTests where
 
 import Generator
+import Builtins
 
 -- | Test tuples encoding
 test1 :: IO ()
