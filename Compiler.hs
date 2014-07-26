@@ -4,10 +4,12 @@ module Compiler (compileMain) where
 
 import Control.Monad
 import Control.Monad.State
+import Data.Maybe
 import qualified Data.Map as M
 
 import Syntax
 import Generator
+import Builtins
 
 data Context = Context {
         cName :: String
@@ -93,9 +95,12 @@ compileNode (Define name (args) body) =
 compileNode (Identifier name) = getVariable name
 compileNode (Call funcName args) = do
   forM_ args compileNode
-  liftG $ do
-      i $ LDF $ Mark $ MkMark funcName
-      i $ AP $ length args
+  liftG $ if M.member funcName builtins
+          then let func = fromJust $ M.lookup funcName builtins
+               in do func args
+          else do
+               i $ LDF $ Mark $ MkMark funcName
+               i $ AP $ length args
 compileNode (Let inits body) = do
   name <- newName
   rememberC name $ compileFunctionBody name (getVarNames inits) body
