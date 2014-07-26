@@ -1,2 +1,5 @@
 (define (main state reserved)
-    (+ 1 2 3))
+    (define (step ai-state world-state)
+        (pair ai-state 3)
+    )
+    (pair 0 step))

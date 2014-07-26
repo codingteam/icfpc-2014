@@ -49,7 +49,11 @@ getVariable name = do
     contexts <- gets (map cVariables . csContexts)
     let x = msum $ map (go name) (zip [0..] contexts)
     case x of
-      Nothing -> fail $ "Unresolved symbol: " ++ name
+      Nothing -> do
+                 funcs <- gets (M.keys . csFunctions)
+                 if name `elem` funcs
+                  then liftG $ i $ LDF $ Mark $ MkMark name
+                  else fail $ "Unresolved symbol: " ++ name
       Just (m,n) -> liftG $ i $ LD m n
   where
     go name (ix, vars) = case M.lookup name vars of
@@ -79,8 +83,9 @@ compileMain' x = error $ (show x) ++ " is not a valid main function"
 
 compileFunctionBody :: String -> [String] -> [SyntaxNode] -> Compiler ()
 compileFunctionBody name args body =
-  inContext name args $
+  inContext name args $ do
       mapM_ compileNode body
+      liftG $ i $ RTN
 
 rememberC :: String -> Compiler () -> Compiler ()
 rememberC name code = 
@@ -95,7 +100,7 @@ compileNode (Define name (args) body) =
 compileNode (Identifier name) = getVariable name
 compileNode (Call funcName args) = do
   forM_ args compileNode
-  liftG $ if M.member funcName builtins
+  liftG $ if isBuiltin funcName
           then let func = fromJust $ M.lookup funcName builtins
                in do func args
           else do
