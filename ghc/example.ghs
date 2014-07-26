@@ -1,0 +1,14 @@
+main:
+    if 1 >= 2:
+        go up
+    else:
+        go down
+    declare a
+    a += 2
+    declare b
+    b |= a
+    f a two b
+
+function f x y z:
+    pass
+    

@@ -3,6 +3,8 @@ of what operators and operations we should support. Translation to GHC
 "assembly" is given along with the constraints on the inputs (in case we decide
 to implement this as Haskell EDSL).
 
+Input files have an extension of "ghs" for "GHost Source".
+
 a = b
     MOV a,b
     'a' can't be constant
@@ -30,11 +32,11 @@ a ^= b
     XOR a,b
     'a' != const
     'a' != PC
-if x >= y then CODE [else CODE]
+if x >= y then CODE
     JLT PC_OF_CODE,x,y
-if x /= y then CODE [else CODE]
+if x /= y then CODE
     LEQ PC_OF_CODE,x,y
-if x <= y then CODE [else CODE]
+if x <= y then CODE
     LGT PC_OF_CODE,x,y
 halt
     HLT
@@ -99,3 +101,13 @@ glance_at(x, y, map_contents)
 
 debug
     INT 8
+
+
+declare a
+    Declarates variable named "a"
+
+ref a
+    Returns the address of "a" in memory
+
+deref a
+    Returns the contents of memory at address "a"
