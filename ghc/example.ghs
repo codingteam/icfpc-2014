@@ -8,7 +8,11 @@ function main:
     declare b
     b |= a
     f a two b
+    stop_right_there
 
 function f x y z:
     pass
-    
+
+function stop_right_there:
+    debug
+    halt
