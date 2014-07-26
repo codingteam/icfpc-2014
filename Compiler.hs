@@ -41,7 +41,10 @@ liftG :: Generator a -> Compiler a
 liftG = Compiler . lift
 
 runCompiler :: Compiler a -> Generator a
-runCompiler comp = evalStateT (unCompiler comp) emptyCState
+runCompiler = runCompilerState emptyCState
+
+runCompilerState :: CState -> Compiler a -> Generator a
+runCompilerState state comp = evalStateT (unCompiler comp) state
 
 inContext :: String -> [String] -> Compiler a -> Compiler a
 inContext name args run = do
@@ -139,5 +142,23 @@ compileNode (Let inits body) = do
     i $ DUM n
     i $ LDF $ Mark $ MkMark name
     i $ RAP n
+compileNode (If condition thenBody elseBody) = do
+  ifC (compileNode condition) (forM_ thenBody compileNode) (forM_ elseBody compileNode)
 compileNode x = fail $ "Unsupported node: " ++ show x
 
+ifC :: Compiler () -> Compiler () -> Compiler () -> Compiler ()
+ifC cond true false = do
+  cond
+  markPrefix <- newName
+  let trueMark  = MkMark $ markPrefix ++ "_true"
+      falseMark = MkMark $ markPrefix ++ "_false"
+  liftG $ do
+    i $ SEL (Mark trueMark) (Mark falseMark)
+    markHere trueMark
+  true
+  liftG $ do
+    i JOIN
+    markHere falseMark
+  false
+  liftG $ do
+    i JOIN
