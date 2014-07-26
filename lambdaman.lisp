@@ -1,1 +1,6 @@
-(define (main) 1 2 3)
+(define (main state reserved)
+    (define (ai ai-state world-state)
+        (let (move 1)
+            (pair ai-state move)))
+    (let (ai-state (list))
+        (pair ai-state ai)))
