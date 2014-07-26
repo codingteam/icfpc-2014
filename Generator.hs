@@ -64,6 +64,7 @@ data Instruction =
   | RTN
   | DUM Int
   | RAP Int
+  | TRAP Int
   | STOP
   | ST Int Int
   | DBUG
@@ -250,16 +251,17 @@ generate gen =
 testGenerator :: Generator a -> IO ()
 testGenerator gen = printCode $ generate gen
 
-call :: ToStack x => Number -> x -> Generator ()
-call addr x = do
+call1 :: ToStack x => Number -> x -> Generator ()
+call1 addr x = do
   load x
   i (LDF addr)
   i (AP 1)
 
-returnS :: ToStack x => x -> Generator ()
-returnS x = do
-  load x
-  i RTN
+call :: Number -> [StackItem] -> Generator ()
+call addr xs = do
+  forM_ xs load
+  i (LDF addr)
+  i $ AP $ length xs
 
 callRecursive :: Number -> [StackItem] -> Generator ()
 callRecursive addr xs = do
@@ -267,6 +269,18 @@ callRecursive addr xs = do
   forM_ xs load
   i (LDF addr)
   i $ RAP $ length xs
+
+callTailRecursive :: Number -> [StackItem] -> Generator ()
+callTailRecursive addr xs = do
+  i $ DUM $ length xs
+  forM_ xs load
+  i (LDF addr)
+  i $ TRAP $ length xs
+
+returnS :: ToStack x => x -> Generator ()
+returnS x = do
+  load x
+  i RTN
 
 -- | Current implementation requires that if `ifS' was used,
 -- then `putAllFragmentsHere' must be called near the end of program.
@@ -325,8 +339,22 @@ getList2dItem' list row col = do
   getListItem list row
   getListItem StackTop col
 
+-- | List -> Int -> Item
 getListItemDecl :: Generator ()
 getListItemDecl = do
   markHere "getListItem"
+  call (Mark "getListItem_go") [StackItem $ Arg 1]
+  i RTN
+  markHere "getListItem_go"
+  getParentVar 0
+  ifS (Arg 0 `Ceq` Const 0)
+    (i CAR)
+    (do i CDR
+        load $ Arg 0 `Sub` Const 1
+        i $ ST 0 0
+        load (Mark "getListItem_go")
+        i (TRAP 1)
+        i RTN
+    )
 
 

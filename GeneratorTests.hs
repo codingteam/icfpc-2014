@@ -12,7 +12,7 @@ test1 = testGenerator $
 -- | First example from specification
 test2 :: IO ()
 test2 = testGenerator $ do
-          call (Mark "body") (21 :: Int)
+          call1 (Mark "body") (21 :: Int)
           i RTN
           markHere "body"
           getArg 0
