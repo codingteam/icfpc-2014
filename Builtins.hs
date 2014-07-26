@@ -1,4 +1,6 @@
-module Builtins (builtins, isBuiltin) where
+{-# LANGUAGE GeneralizedNewtypeDeriving, DeriveDataTypeable, TypeSynonymInstances, FlexibleInstances, OverloadedStrings, ExistentialQuantification #-}
+
+module Builtins (builtins, isBuiltin, stdLibrary) where
 
 import Control.Monad
 import qualified Data.Map as M
@@ -60,3 +62,27 @@ car = unary CAR
 
 cdr :: Builtin
 cdr = unary CDR
+
+
+--- Library
+
+stdLibrary :: Generator ()
+stdLibrary = do
+  getListItemDecl
+
+-- | List -> Int -> Item
+getListItemDecl :: Generator ()
+getListItemDecl = do
+  markHere "elt"
+  call (Mark "getListItem_go") [StackItem $ Arg 0, StackItem $ Arg 1]
+  i RTN
+  markHere "getListItem_go"
+  getArg 0
+  ifS (Arg 1 `Ceq` Const 0)
+    (i CAR)
+    (do i CDR
+        call (Mark "getListItem_go") [StackItem $ StackTop, StackItem $ Arg 1 `Sub` Const 1]
+    )
+  i RTN
+
+

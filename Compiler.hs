@@ -11,10 +11,15 @@ import Syntax
 import Generator
 import Builtins
 
+import Debug.Trace
+
 data Context = Context {
         cName :: String
       , cVariables :: M.Map String Int
-      } deriving (Eq, Show)
+      } deriving (Eq)
+
+instance Show Context where
+  show c = "<" ++ cName c ++ ">"
 
 newContext :: String -> [String] -> Context
 newContext name args = Context name $ M.fromList $ zip args [0..] 
@@ -53,7 +58,7 @@ getVariable name = do
                  funcs <- gets (M.keys . csFunctions)
                  if name `elem` funcs
                   then liftG $ i $ LDF $ Mark $ MkMark name
-                  else fail $ "Unresolved symbol: " ++ name
+                  else fail $ "Unresolved symbol: " ++ name ++ ".\nSeen contexts: " ++ show contexts
       Just (m,n) -> liftG $ i $ LD m n
   where
     go name (ix, vars) = case M.lookup name vars of
@@ -71,21 +76,37 @@ compileMain :: SyntaxNode -> Generator ()
 compileMain node = runCompiler $ do
     compileMain' node
     -- Write function bodies
-    funcs <- gets csFunctions
-    forM_ (M.keys funcs) $ \name -> do
-      liftG $ markHere (MkMark name)
-      let Just code = M.lookup name funcs
-      code
+    compileFunctions
+    -- Write standard library
+    liftG stdLibrary
+    -- Write IF bodies
+    liftG putAllFragmentsHere
+  where
+    compileFunctions = do
+      funcs <- gets csFunctions
+      if M.null funcs
+        then return ()
+        else do
+             forM_ (M.assocs funcs) $ \(name, code) -> do
+               modify $ \st -> st {csFunctions = M.delete name (csFunctions st)}
+               code
+             compileFunctions
+
 
 compileMain' :: SyntaxNode -> Compiler ()
-compileMain' (Define "main" (args) body) = compileFunctionBody "main" args body
+compileMain' (Define "main" (args) body) = compileFunctionBody [] "main" args body
 compileMain' x = error $ (show x) ++ " is not a valid main function"
 
-compileFunctionBody :: String -> [String] -> [SyntaxNode] -> Compiler ()
-compileFunctionBody name args body =
+compileFunctionBody :: [Context] -> String -> [String] -> [SyntaxNode] -> Compiler ()
+compileFunctionBody cxts name args body = do
+  currentContext <- gets csContexts
+  modify $ \st -> st {csContexts = cxts ++ csContexts st}
   inContext name args $ do
+      trace ("Compile " ++ name) $ return ()
+      liftG $ markHere (MkMark name)
       mapM_ compileNode body
       liftG $ i $ RTN
+  modify $ \st -> st {csContexts = currentContext}
 
 rememberC :: String -> Compiler () -> Compiler ()
 rememberC name code = 
@@ -95,8 +116,9 @@ rememberC name code =
 compileNode :: SyntaxNode -> Compiler ()
 compileNode (Number x) = do
     liftG $ load x
-compileNode (Define name (args) body) =
-  rememberC name $ compileFunctionBody name args body
+compileNode (Define name (args) body) = do
+  cxts <- gets csContexts
+  rememberC name $ compileFunctionBody cxts name args body
 compileNode (Identifier name) = getVariable name
 compileNode (Call funcName args) = do
   forM_ args compileNode
@@ -108,7 +130,8 @@ compileNode (Call funcName args) = do
                i $ AP $ length args
 compileNode (Let inits body) = do
   name <- newName
-  rememberC name $ compileFunctionBody name (getVarNames inits) body
+  cxts <- gets csContexts
+  rememberC name $ compileFunctionBody cxts name (getVarNames inits) body
   forM_ inits $ \(VarInit _ val) -> compileNode val
   let n = length inits
   liftG $ do

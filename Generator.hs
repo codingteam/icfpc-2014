@@ -79,7 +79,11 @@ data Instruction =
 data UInstruction =
     MarkHere Mark
   | Instruction Instruction
-  deriving (Eq, Show, Data, Typeable)
+  deriving (Eq, Data, Typeable)
+
+instance Show UInstruction where
+  show (MarkHere mark) = show mark ++ ":\n"
+  show (Instruction instr) = show instr ++ "\n"
 
 -- | Ariphmetic expression
 data Expr =
@@ -154,7 +158,7 @@ resolveMarks code =
     resolve marks (Literal n) = Literal n
     resolve marks (Mark name) =
       case M.lookup name marks of
-        Nothing -> error $ "Cannot resolve mark: " ++ show name
+        Nothing -> error $ "Cannot resolve mark: " ++ show name ++ "\nUnresolved code: " ++ show code
         Just offset -> Literal offset
 
 emptyGenState :: GenState
@@ -369,20 +373,4 @@ getList2dItem' :: Expr -> Int -> Int -> Generator ()
 getList2dItem' list row col = do
   getListItem list row
   getListItem StackTop col
-
--- | List -> Int -> Item
-getListItemDecl :: Generator ()
-getListItemDecl = do
-  markHere "getListItem"
-  call (Mark "getListItem_go") [StackItem $ Arg 0, StackItem $ Arg 1]
-  i RTN
-  markHere "getListItem_go"
-  getArg 0
-  ifS (Arg 1 `Ceq` Const 0)
-    (i CAR)
-    (do i CDR
-        call (Mark "getListItem_go") [StackItem $ StackTop, StackItem $ Arg 1 `Sub` Const 1]
-    )
-  i RTN
-
 

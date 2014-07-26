@@ -36,6 +36,7 @@ parseList (let_ : initializers : body) | isAtom let_ && (unAtom let_) == "let" =
     Let inits $ parseExprList body
     where pairs [] = []
           pairs (a:b:c) = (a, b) : pairs c
+          pairs x = error $ "Invalid initializers in Let: " ++ show x
           inits = map (\(n, e) -> parseVarInit n e) $ pairs (unList initializers)
 parseList (name : args) | isAtom name =
     Call (unAtom name) $ map parse args
