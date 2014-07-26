@@ -147,7 +147,7 @@ atomR b = unhinted +++ hinted
 simpleString :: Bool -> ReadP String
 simpleString False = raw
 simpleString True =
-  skipSpaces >> (raw +++ token +++ b64Atom +++ hexAtom +++ quotedString)
+  skipSpaces >> (raw +++ token +++ b64Atom +++ hexAtom +++ quotedString +++ decimalStr)
 
 quotedString :: ReadP String
 quotedString = withLength +++ withoutLength
@@ -205,6 +205,11 @@ raw = do
   len <- decimal
   char ':'
   count len get
+
+decimalStr :: ReadP String
+decimalStr = do
+  s <- munch1 isNumber
+  return s
 
 decimal :: ReadP Int
 decimal = do

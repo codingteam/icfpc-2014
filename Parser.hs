@@ -2,7 +2,9 @@ module Parser where
 
 import Codec.Sexpr
 
-parseSexpr :: String -> IO (Sexpr String)
+type SSexpr = Sexpr String
+
+parseSexpr :: String -> IO SSexpr
 parseSexpr path = do
     text <- readFile path
     return $ readSexprString text

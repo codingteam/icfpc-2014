@@ -1,1 +1,1 @@
-(a b c)
+(define (main) 1 2 3)
