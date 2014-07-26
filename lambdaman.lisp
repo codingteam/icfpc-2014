@@ -1,6 +1,6 @@
 (define (main state reserved)
     (define (elt2 lst row col)
-      (elt col (elt row lst))
+      (elt (elt lst row) col)
     )
     (define (step ai-state world-state)
       (let (grid (car world-state))
