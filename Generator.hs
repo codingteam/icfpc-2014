@@ -350,7 +350,7 @@ getListItemDecl = do
   ifS (Arg 1 `Ceq` Const 0)
     (i CAR)
     (do i CDR
-        call (Mark "getListItem_go") [StackItem $ Arg 0, StackItem $ Arg 1 `Sub` Const 1]
+        call (Mark "getListItem_go") [StackItem $ StackTop, StackItem $ Arg 1 `Sub` Const 1]
     )
   i RTN
 

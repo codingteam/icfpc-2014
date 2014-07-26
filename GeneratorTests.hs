@@ -82,10 +82,22 @@ test8 = testGenerator $ do
 
 test9 :: IO ()
 test9 = testGenerator $ do
-          let list = [ 0, 1, 2, 3 ] :: [Int]
-          call (Mark "getListItem") [StackItem list, StackItem (3 :: Int)]
-          i DBUG
+          testGetFromList
           makeDumbAi StackTop
+          i RTN
           getListItemDecl
           putAllFragmentsHere
+
+testGetFromList :: Generator ()
+testGetFromList = do
+    let list = [ 0, 1, 2, 3 ] :: [Int]
+    call (Mark "getListItem") [StackItem list, StackItem (3 :: Int)]
+    i DBUG
+
+test10 :: IO ()
+test10 = testGenerator $ do
+           testGetFromList
+           i RTN
+           getListItemDecl
+           putAllFragmentsHere
 
