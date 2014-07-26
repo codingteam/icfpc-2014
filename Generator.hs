@@ -7,6 +7,7 @@ import Control.Monad.State
 import qualified Data.Map as M
 import Data.String
 import Data.Generics
+import Text.Printf
 
 -- | Number is literal number or pointer to named mark
 -- (to be resolved at the end of generation)
@@ -141,11 +142,9 @@ data GenState = GenState {
   , gsFragments :: M.Map Mark (Generator ())
   }
 
--- | Resolve mark names in instructions into real addresses
-resolveMarks :: [UInstruction] -> [Instruction]
-resolveMarks code =
-    let (_,marks) = execState (mapM go code) (0, M.empty)
-    in  [everywhere (mkT $ resolve marks) instr | Instruction instr <- code]
+getMarks :: [UInstruction] -> M.Map Mark Int
+getMarks code =
+    snd $ execState (mapM go code) (0, M.empty)
   where
     go :: UInstruction -> State (Int, M.Map Mark Int) ()
     go (MarkHere name) = do
@@ -155,6 +154,12 @@ resolveMarks code =
     go (Instruction _) = do
       modify $ \(offset, st) -> (offset+1, st)
 
+-- | Resolve mark names in instructions into real addresses
+resolveMarks :: [UInstruction] -> [Instruction]
+resolveMarks code =
+    let marks = getMarks code
+    in  [everywhere (mkT $ resolve marks) instr | Instruction instr <- code]
+  where
     resolve marks (Literal n) = Literal n
     resolve marks (Mark name) =
       case M.lookup name marks of
@@ -229,8 +234,11 @@ instance ToStack StackItem where
 instance Show StackItem where
   show (StackItem x) = show x
 
-printCode :: [Instruction] -> IO ()
-printCode is = forM_ is $ print
+printCode :: [(Either Int String, Instruction)] -> IO ()
+printCode is = forM_ is go
+  where
+    go (Left n,  c) = printf "%03d:\t\t%s\n" (n :: Int) (show c)
+    go (Right m, c) = printf "%s:\n\t\t%s\n" m (show c)
 
 generateG :: Generator a -> Generator [UInstruction]
 generateG gen = do
@@ -270,8 +278,20 @@ generate gen =
   let st = execState (runGenerator gen) emptyGenState
   in  resolveMarks $ gsResult st
 
+-- | Run generator.
+generate' :: Generator a -> [(Either Int String, Instruction)]
+generate' gen =
+    let st = execState (runGenerator gen) emptyGenState
+        instructions = resolveMarks $ gsResult st
+        marksMap = getMarks $ gsResult st
+        revMap = M.fromList [(offset, mark) | (MkMark mark, offset) <- M.assocs marksMap]
+        go m (n, ins) = case M.lookup n m of
+                          Nothing -> (Left n, ins)
+                          Just mark -> (Right mark, ins)
+    in  map (go revMap) $ zip [0..] instructions
+
 testGenerator :: Generator a -> IO ()
-testGenerator gen = printCode $ generate gen
+testGenerator gen = printCode $ generate' gen
 
 -- | Call function with single argument
 call1 :: ToStack x => Number -> x -> Generator ()

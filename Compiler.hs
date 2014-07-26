@@ -62,7 +62,9 @@ getVariable name = do
                  funcs <- gets (M.keys . csFunctions)
                  if name `elem` funcs
                   then liftG $ i $ LDF $ Mark $ MkMark name
-                  else fail $ "Unresolved symbol: " ++ name ++ ".\nSeen contexts: " ++ show contexts
+                  else fail $ "Unresolved symbol: " ++ name ++
+                              ".\nSeen contexts: " ++ show contexts ++
+                              ".\nKnown builtins: " ++ show (M.keys builtins)
       Just (m,n) -> liftG $ i $ LD m n
   where
     go name (ix, vars) = case M.lookup name vars of

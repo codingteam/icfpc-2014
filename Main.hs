@@ -18,7 +18,16 @@ execute ["sexpr", path] = do
 execute ["parse", path] = do
     s <- parseSexpr path
     putStrLn $ show $ parse s
-execute ["compile", path] = do
+execute ("compile": path: x) = do
+    let output = case x of
+                   [] -> "aout.gcc"
+                   [f] -> f
+                   _ -> error $ "Only one output file can be specified"
     s <- parseSexpr path
-    testGenerator $ compileMain $ parse s
+    let code = compileMain $ parse s
+    testGenerator code
+    let text = unlines $ map show $ generate code
+    writeFile output text
+    
+
 execute _ = putStrLn "sexpr path - parse sexpr\nparse path - parse syntax tree\ncompile path - compile file"
