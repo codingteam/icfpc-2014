@@ -57,6 +57,7 @@ data Instruction =
   | CAR
   | CDR
   | SEL Number Number
+  | TSEL Number Number
   | JOIN
   | LDF Number
   | AP Int
@@ -283,6 +284,19 @@ ifS cond true false = do
   remember falseMark $ do
       false
       i JOIN
+
+-- | Do not know yet how to implement `break' or `continue'
+doWhile :: Expr -> Generator () -> Generator ()
+doWhile cond body = do
+  offset <- getCurrentOffset
+  let markPrefix = show offset
+      markStart = MkMark $ markPrefix ++ "_begin"
+      markEnd   = MkMark $ markPrefix ++ "_end"
+  markHere markStart
+  body
+  load cond
+  i $ TSEL (Mark markStart) (Mark markEnd)
+  markHere markEnd
 
 getListItem :: Expr -> Int -> Generator ()
 getListItem list ix = do
