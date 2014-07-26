@@ -343,18 +343,15 @@ getList2dItem' list row col = do
 getListItemDecl :: Generator ()
 getListItemDecl = do
   markHere "getListItem"
-  call (Mark "getListItem_go") [StackItem $ Arg 1]
+  call (Mark "getListItem_go") [StackItem $ Arg 0, StackItem $ Arg 1]
   i RTN
   markHere "getListItem_go"
-  getParentVar 0
-  ifS (Arg 0 `Ceq` Const 0)
+  getArg 0
+  ifS (Arg 1 `Ceq` Const 0)
     (i CAR)
     (do i CDR
-        load $ Arg 0 `Sub` Const 1
-        i $ ST 0 0
-        load (Mark "getListItem_go")
-        i (TRAP 1)
-        i RTN
+        call (Mark "getListItem_go") [StackItem $ Arg 0, StackItem $ Arg 1 `Sub` Const 1]
     )
+  i RTN
 
 

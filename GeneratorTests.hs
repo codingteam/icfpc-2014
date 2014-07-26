@@ -34,16 +34,17 @@ test4 = testGenerator $ do
 
 makeDumbAi :: Expr -> Generator ()
 makeDumbAi dir = do
+    markHere "main"
     callRecursive "init" [ StackItem dir      -- var direction
                          , StackItem ("step" :: Mark)]
     i RTN
 
     markHere "init"
-    returnS ( 42 :: Int -- init var s
+    returnS ( 0 :: Int -- init var s
             , Arg 1)
 
     markHere "step"
-    returnS ( Const 1 `Add` Arg 0 -- s + 1
+    returnS ( Arg 0
             , Parent 1 0 -- var direction
             )
 
@@ -77,5 +78,14 @@ test8 = testGenerator $ do
             (load left)
             (load right)
           makeDumbAi StackTop
+          putAllFragmentsHere
+
+test9 :: IO ()
+test9 = testGenerator $ do
+          let list = [ 0, 1, 2, 3 ] :: [Int]
+          call (Mark "getListItem") [StackItem list, StackItem (3 :: Int)]
+          i DBUG
+          makeDumbAi StackTop
+          getListItemDecl
           putAllFragmentsHere
 
