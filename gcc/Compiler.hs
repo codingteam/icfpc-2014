@@ -90,10 +90,12 @@ compileMain node = runCompiler $ do
   where
     compileFunctions = do
       funcs <- gets csFunctions
+      trace ("Funcs: " ++ show (M.keys funcs)) $ return ()
       if M.null funcs
         then return ()
         else do
              forM_ (M.assocs funcs) $ \(name, code) -> do
+               trace ("Write compiled: " ++ name) $ return ()
                modify $ \st -> st {csFunctions = M.delete name (csFunctions st)}
                code
              compileFunctions
@@ -105,17 +107,24 @@ compileMain' x = error $ (show x) ++ " is not a valid main function"
 
 compileFunctionBody :: [Context] -> String -> [String] -> [SyntaxNode] -> Compiler ()
 compileFunctionBody cxts name args body = do
+  inContexts cxts $
+    inContext name args $ do
+        trace ("Compile " ++ name) $ return ()
+        liftG $ markHere (MkMark name)
+        mapM_ compileNode body
+        liftG $ i $ RTN
+
+inContexts :: [Context] -> Compiler a -> Compiler a
+inContexts cxts run = do
   currentContext <- gets csContexts
   modify $ \st -> st {csContexts = cxts ++ csContexts st}
-  inContext name args $ do
-      trace ("Compile " ++ name) $ return ()
-      liftG $ markHere (MkMark name)
-      mapM_ compileNode body
-      liftG $ i $ RTN
+  result <- run
   modify $ \st -> st {csContexts = currentContext}
+  return result
 
 rememberC :: String -> Compiler () -> Compiler ()
-rememberC name code = 
+rememberC name code = do
+  trace ("Remember " ++ name) $ return ()
   modify $ \st ->
     st {csFunctions = M.insert name code (csFunctions st)}
 
@@ -152,15 +161,19 @@ ifC :: Compiler () -> Compiler () -> Compiler () -> Compiler ()
 ifC cond true false = do
   cond
   markPrefix <- newName
-  let trueMark  = MkMark $ markPrefix ++ "_true"
-      falseMark = MkMark $ markPrefix ++ "_false"
+  let trueMark  = markPrefix ++ "_true"
+      falseMark = markPrefix ++ "_false"
   liftG $ do
-    i $ SEL (Mark trueMark) (Mark falseMark)
-    markHere trueMark
-  true
-  liftG $ do
-    i JOIN
-    markHere falseMark
-  false
-  liftG $ do
-    i JOIN
+    i $ SEL (Mark $ MkMark trueMark) (Mark $ MkMark falseMark)
+  cxts <- gets csContexts
+  rememberC trueMark $ do
+    inContexts cxts $ do
+      liftG $ markHere (MkMark trueMark)
+      true
+      liftG $ i JOIN
+  rememberC falseMark $ do
+    inContexts cxts $ do
+      liftG $ markHere (MkMark falseMark)
+      false
+      liftG $ i JOIN
+
