@@ -10,19 +10,19 @@ type Builtin = [SyntaxNode] -> Generator ()
 
 builtins :: M.Map String Builtin
 builtins = M.fromList [("+", add),
-                       ("-", subtract),
+                       ("-", sub),
                        ("*", multiply),
-                       ("/", divide),]
+                       ("/", divide)]
 
 chain :: Instruction -> Builtin
-chain instruction = \args = do
-                forM_ [1..(length args) - 1] (\_ -> i instruction)
+chain instruction = \args -> do
+                      forM_ [1..(length args) - 1] (\_ -> i instruction)
 
 add :: Builtin
 add = chain ADD
 
-subtract :: Builtin
-subtract = chain SUB
+sub :: Builtin
+sub = chain SUB
 
 multiply :: Builtin
 multiply = chain MUL
