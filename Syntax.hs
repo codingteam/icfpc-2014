@@ -14,6 +14,9 @@ data SyntaxNode = Number Int
 data VarInit = VarInit String SyntaxNode
     deriving Show
 
+getVarNames :: [VarInit] -> [String]
+getVarNames = map (\(VarInit name _) -> name)
+
 parse :: SSexpr -> SyntaxNode
 parse sexpr | isAtom sexpr = parseAtom $ unAtom sexpr
 parse sexpr | isList sexpr = parseList $ unList sexpr
