@@ -53,6 +53,12 @@
         (let (map (car state))
             (elt2 map coords)))
 
+    (define (not x)
+        (= x 0))
+
+    (define (is-passable cell)
+        (not (= cell 0)))
+
     (define (get-code state coords)
         (let (cell (get-cell state coords))
             (if (is-passable cell)
