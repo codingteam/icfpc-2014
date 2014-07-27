@@ -1,0 +1,7 @@
+(define (main)
+  (let (x 5)
+    (dbug x)
+    (set x 7)
+    (dbug x)
+  )
+)

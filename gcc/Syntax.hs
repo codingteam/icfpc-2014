@@ -24,6 +24,8 @@ parseList (define : signature : body) | isAtom define && (unAtom define) == "def
     where list = unList signature
           name = unAtom $ head list
           args = map unAtom $ tail list
+parseList (set_ : var : [value]) | isAtom set_ && unAtom set_ == "set" =
+    Set (unAtom var) $ parse value
 parseList (let_ : initializers : body) | isAtom let_ && (unAtom let_) == "let" =
     Let inits $ parseExprList body
     where pairs [] = []

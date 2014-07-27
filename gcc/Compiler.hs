@@ -53,10 +53,19 @@ inContext name args run = do
   modify $ \st -> st {csContexts = drop 1 (csContexts st)}
   return result
 
+getVariableNr :: String -> Compiler (Maybe (Int, Int))
+getVariableNr name = do
+    contexts <- gets (map cVariables . csContexts)
+    return $ msum $ map (go name) (zip [0..] contexts)
+  where
+    go name (ix, vars) = case M.lookup name vars of
+                           Nothing -> Nothing
+                           Just n -> Just (ix, n)
+
 getVariable :: String -> Compiler ()
 getVariable name = do
     contexts <- gets (map cVariables . csContexts)
-    let x = msum $ map (go name) (zip [0..] contexts)
+    x <- getVariableNr name
     case x of
       Nothing -> do
                  funcs <- gets (M.keys . csFunctions)
@@ -66,10 +75,6 @@ getVariable name = do
                               ".\nSeen contexts: " ++ show contexts ++
                               ".\nKnown builtins: " ++ show (M.keys builtins)
       Just (m,n) -> liftG $ i $ LD m n
-  where
-    go name (ix, vars) = case M.lookup name vars of
-                           Nothing -> Nothing
-                           Just n -> Just (ix, n)
 
 newName :: Compiler String
 newName = do
@@ -143,6 +148,13 @@ compileNode (Call funcName args) = do
           else do
                i $ LDF $ Mark $ MkMark funcName
                i $ AP $ length args
+compileNode (Set name value) = do
+  compileNode value
+  mbVar <- getVariableNr name
+  case mbVar of
+    Nothing -> fail $ "Unknown variable in set: " ++ name
+    Just (m, n) -> liftG $ i $ ST m n
+
 compileNode (Let inits body) = do
   name <- newName
   cxts <- gets csContexts

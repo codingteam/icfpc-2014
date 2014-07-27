@@ -6,6 +6,7 @@ data SyntaxNode = Number Int
                 | Call String [SyntaxNode]
                 | Define String [String] [SyntaxNode]
                 | Let [VarInit] [SyntaxNode]
+                | Set String SyntaxNode
                 | When SyntaxNode [SyntaxNode]
                 | If SyntaxNode [SyntaxNode] [SyntaxNode]
      deriving Show
