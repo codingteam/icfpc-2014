@@ -23,6 +23,8 @@ type Program  = [Function]
 
 data Expr = Const Word8
           | Var VarName
+          | Ref VarName
+          | Deref Expr
   deriving Show
 
 data Statement where
@@ -49,8 +51,6 @@ data Statement where
   GetGParams      :: Expr -> VarName -> VarName -> Statement
   GlanceAt        :: Expr -> Expr -> VarName -> Statement
   Debug           :: Statement
-  Ref             :: Expr -> Statement
-  Deref           :: Expr -> Statement
-  Call            :: FuncName -> FuncArgs -> Statement
+  Call            :: FuncName -> [Expr] -> Statement
 
 deriving instance Show Statement

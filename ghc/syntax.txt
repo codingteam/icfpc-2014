@@ -63,7 +63,7 @@ get_lm_position(NO, x, y)
     MOV x, A
     MOV y, B
 
-this_ghost_idx(id)
+get_this_ghost_idx(id)
     INT 3
     MOV id, A
 

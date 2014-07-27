@@ -42,7 +42,7 @@ pFuncHeader = do
 
   args <- option [] $ do
     skipMany1 space
-    pFuncArg `sepBy` spaces
+    pFuncArg `sepBy` many1 space
 
   spaces
   char ':'
@@ -53,6 +53,9 @@ pFuncHeader = do
 pFuncArg :: IParser VarName
 pFuncArg = pVarName
 
+pFuncName :: IParser FuncName
+pFuncName = pVarName
+
 pVarName :: IParser VarName
 pVarName = do
   name_start <- letter
@@ -60,18 +63,47 @@ pVarName = do
   return $ name_start : name_end
 
 pExpr :: IParser Expr
-pExpr = choice [ pConst, pVar ]
+pExpr = choice [ pConst, pRef, pDeref, pVar ]
   where
-  pConst = do
+  pConst = try $ do
     number <- many1 digit
     return $ Const $ read number
 
-  pVar = do
+  pVar = try $ do
     name <- pVarName
     return $ Var name
 
+  pRef = try $ do
+    string "ref"
+    many1 space
+    var <- pVarName
+    spaces
+    return $ Ref var
+
+  pDeref = try $ do
+    string "deref"
+    many1 space
+    expr <- pExpr
+    spaces
+    return $ Deref expr
+
 pStatement :: IParser Statement
 pStatement = choice [ pDeclare
+                    , pCall
+                    , pIfLT
+                    , pIfEQ
+                    , pIfGT
+                    , pHalt
+                    , pDebug
+                    , pGo
+                    , pGetLMPos
+                    , pGetThisGhostIdx
+                    , pGetGStartPos
+                    , pGetGCurPos
+                    , pGetGParams
+                    , pGlanceAt
+                    , pDebug
+
                     , pAssign
                     , pInc
                     , pDec
@@ -82,11 +114,6 @@ pStatement = choice [ pDeclare
                     , pAnd
                     , pOr
                     , pXor
-                    , pIfLT
-                    , pIfEQ
-                    , pIfGT
-                    , pHalt,
-                    , pDebug
                     ]
 
 pDeclare :: IParser Statement
@@ -192,7 +219,94 @@ pIfGT :: IParser Statement
 pIfGT = genIfOpParser "<=" IfGT
 
 pHalt :: IParser Statement
-pHalt = try $ string "halt"
+pHalt = try $ do
+  string "halt"
+  spaces
+  return Halt
 
 pDebug :: IParser Statement
-pDebug = try $ string "debug"
+pDebug = try $ do
+  string "debug"
+  spaces
+  return Debug
+
+pGo :: IParser Statement
+pGo = try $ do
+  string "go"
+  many1 space
+  dir <- pExpr
+  spaces
+  return $ Go dir
+
+pGetLMPos :: IParser Statement
+pGetLMPos = try $ do
+  string "get_lm_position"
+  many1 space
+  no <- pExpr
+  many1 space
+  x <- pVarName
+  many1 space
+  y <- pVarName
+  spaces
+  return $ GetLMPos no x y
+
+pGetThisGhostIdx = try $ do
+  string "get_this_ghost_idx"
+  many1 space
+  id <- pVarName
+  spaces
+  return $ GetThisGhostIdx id
+
+pGetGStartPos = try $ do
+  string "get_ghost_starting_position"
+  many1 space
+  idx <- pExpr
+  many1 space
+  x <- pVarName
+  many1 space
+  y <- pVarName
+  spaces
+  return $ GetGStartPos idx x y
+
+pGetGCurPos = try $ do
+  string "get_ghost_current_position"
+  many1 space
+  idx <- pExpr
+  many1 space
+  x <- pVarName
+  many1 space
+  y <- pVarName
+  spaces
+  return $ GetGCurPos idx x y
+
+pGetGParams = try $ do
+  string "get_ghost_params"
+  many1 space
+  idx <- pExpr
+  many1 space
+  vitality <- pVarName
+  many1 space
+  direction <- pVarName
+  spaces
+  return $ GetGParams idx vitality direction
+
+pGlanceAt = try $ do
+  string "glance_at"
+  many1 space
+  x <- pExpr
+  many1 space
+  y <- pExpr
+  many1 space
+  result <- pVarName
+  spaces
+  return $ GlanceAt x y result
+
+pCall = try $ do
+  string "call"
+  many1 space
+  f <- pFuncName
+  args <- option [] $ try $ do
+    skipMany1 space
+    pExpr `sepBy` many1 space
+  spaces
+  return $ Call f args
