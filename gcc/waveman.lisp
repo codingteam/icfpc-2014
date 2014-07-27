@@ -48,6 +48,11 @@
         ((+ dir 1))
       )
     )
+
+    (define (get-cell state coords)
+        (let (map (car state))
+            (elt2 map coords)))
+
     (define (get-code state coords)
         (let (cell (get-cell state coords))
             (if (is-passable cell)
