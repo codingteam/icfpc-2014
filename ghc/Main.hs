@@ -7,6 +7,11 @@ main = do
   let input_text = unlines [
                    "function f a b c:"
                  , "  declare x"
+                 , "  declare y"
+                 , "  x = a"
+                 , "  y = b"
+                 , "  declare z"
+                 , "  z = c"
                  , ""
                  , "function main:"
                  , "  declare a"

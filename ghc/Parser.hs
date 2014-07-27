@@ -59,9 +59,20 @@ pVarName = do
   name_end <- many alphaNum
   return $ name_start : name_end
 
+pExpr :: IParser Expr
+pExpr = choice [ pConst, pVar ]
+  where
+  pConst = do
+    number <- many1 digit
+    return $ Const $ read number
+
+  pVar = do
+    name <- pVarName
+    return $ Var name
 
 pStatement :: IParser Statement
 pStatement = choice [ pDeclare
+                    , pAssign
                     ]
 
 pDeclare :: IParser Statement
@@ -72,3 +83,12 @@ pDeclare = do
   spaces
   return $ Declare name
 
+pAssign :: IParser Statement
+pAssign = do
+  dest <- pVarName
+  spaces
+  char '='
+  spaces
+  src <- pExpr
+  spaces
+  return $ Assign dest src
