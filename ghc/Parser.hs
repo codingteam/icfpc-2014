@@ -85,6 +85,8 @@ pStatement = choice [ pDeclare
                     , pIfLT
                     , pIfEQ
                     , pIfGT
+                    , pHalt,
+                    , pDebug
                     ]
 
 pDeclare :: IParser Statement
@@ -188,3 +190,9 @@ pIfEQ = genIfOpParser "/=" IfEQ
 
 pIfGT :: IParser Statement
 pIfGT = genIfOpParser "<=" IfGT
+
+pHalt :: IParser Statement
+pHalt = try $ string "halt"
+
+pDebug :: IParser Statement
+pDebug = try $ string "debug"
