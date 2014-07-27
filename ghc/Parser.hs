@@ -22,7 +22,7 @@ iParse aParser source_name input =
 
 pProgram :: IParser Program
 pProgram = do
-  functions <- pFunc `sepBy1` many1 newline
+  functions <- many1 pFunc
   eof
   return functions
 
@@ -50,14 +50,15 @@ pFuncHeader = do
 
   return (name, args)
 
-pFuncArg :: IParser Var
-pFuncArg = pVar
+pFuncArg :: IParser VarName
+pFuncArg = pVarName
 
-pVar :: IParser Var
-pVar = do
-  name <- pVarName
+pVarName :: IParser VarName
+pVarName = do
+  name_start <- letter
+  name_end <- many alphaNum
+  return $ name_start : name_end
 
-  return $ Var name
 
 pStatement :: IParser Statement
 pStatement = choice [ pDeclare
@@ -68,11 +69,6 @@ pDeclare = do
   string "declare"
   skipMany1 space
   name <- pVarName
-  newline
+  spaces
   return $ Declare name
 
-pVarName :: IParser VarName
-pVarName = do
-  name_start <- letter
-  name_end <- many alphaNum
-  return $ name_start : name_end
