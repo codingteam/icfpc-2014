@@ -20,10 +20,10 @@ iParse :: IParser a -> SourceName -> String -> Either ParseError a
 iParse aParser source_name input =
   runIndent source_name $ runParserT aParser () source_name input
 
-pFunc :: IParser AST
+pFunc :: IParser Function
 pFunc = do
   body <- withBlock
-            (\(name, args) body -> Func name args (Block body))
+            (\(name, args) body -> Function name args body)
             pFuncHeader
             pFuncBody
   spaces
@@ -48,9 +48,9 @@ pFuncArg = do
   name_start <- letter
   name_end <- many alphaNum
 
-  return $ V $ name_start : name_end
+  return $ Var $ name_start : name_end
 
-pFuncBody :: IParser AST
+pFuncBody :: IParser Statement
 pFuncBody = do -- TODO: implement
   letter
   return Halt

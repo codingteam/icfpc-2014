@@ -7,8 +7,8 @@ function main:
     a += 2
     declare b
     b |= a
-    f a two b
-    stop_right_there
+    call f a two b
+    call stop_right_there
 
 function f x y z:
     pass
