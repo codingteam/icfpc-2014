@@ -22,7 +22,8 @@ builtins = M.fromList [("+", add),
                        ("car", car),
                        ("cdr", cdr),
                        ("list", list),
-                       ("dbug", dbug) ]
+                       ("dbug", dbug),
+                       ("cons", cons)]
 
 isBuiltin :: String -> Bool
 isBuiltin name = M.member name builtins
@@ -34,6 +35,9 @@ unary instruction _     = fail $ "Invalid function call with " ++ (show instruct
 binary :: Instruction -> [SyntaxNode] -> Generator ()
 binary instruction [arg1, arg2] = i instruction
 binary instruction _            = fail $ "Invalid function call with " ++ (show instruction)
+
+cons :: Builtin
+cons = binary CONS
 
 dbug :: Builtin
 dbug = unary DBUG

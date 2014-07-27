@@ -111,7 +111,7 @@
             (1000000)
             ((let (code (get-code state coords))
                 (if (= code 0)
-                    ((let (new-visited (append visited coords))
+                    ((let (new-visited (cons coords visited))
                         (+ 1 (min-4 (eatable-distance-loop state new-visited (at-up coords))
                                     (eatable-distance-loop state new-visited (at-right coords))
                                     (eatable-distance-loop state new-visited (at-down coords))
@@ -121,7 +121,7 @@
                         (1000000))))))))
 
     (define (eatable-distance state coords)
-        (eatable-distance-loop state (list) coords))
+        (eatable-distance-loop state 0 coords))
 
     (define (min-idx-4 a b c d)
         (if (geq a b)
