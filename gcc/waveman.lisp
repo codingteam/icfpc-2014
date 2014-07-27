@@ -125,7 +125,7 @@
 
     (define (empty-list list)
         (dbug 20)
-        (= list 0))
+        (atom list))
 
     (define (has-coords list coords)
         (dbug 21)
