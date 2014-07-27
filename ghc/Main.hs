@@ -1,16 +1,16 @@
 module Main where
 
-import Parser (iParse, pFunc)
+import Parser
 
 main :: IO ()
 main = do
   let input_text = unlines [
                    "function f a b c:"
-                 , "  a += b"
-                 , "  c /= b"
-                 , "  go a"
-                 , "  halt"
+                 , "  declare x"
+                 , ""
+                 , "function main:"
+                 , "  declare a"
                  ]
-  case iParse pFunc "indented_example" input_text of
+  case iParse pProgram "indented_example" input_text of
     Left  err    -> print err
-    Right result -> putStrLn $ "I parsed: " ++ show result
+    Right result -> print result

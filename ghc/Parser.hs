@@ -3,7 +3,7 @@ module Parser (
   iParse
 
   -- parsers
-, pFunc
+, pProgram
 ) where
 
 import Text.Parsec hiding (State)
@@ -20,37 +20,59 @@ iParse :: IParser a -> SourceName -> String -> Either ParseError a
 iParse aParser source_name input =
   runIndent source_name $ runParserT aParser () source_name input
 
+pProgram :: IParser Program
+pProgram = do
+  functions <- pFunc `sepBy1` many1 newline
+  eof
+  return functions
+
 pFunc :: IParser Function
 pFunc = do
   body <- withBlock
             (\(name, args) body -> Function name args body)
             pFuncHeader
-            pFuncBody
-  spaces
+            pStatement
   return body
 
 pFuncHeader :: IParser (FuncName, FuncArgs)
 pFuncHeader = do
   string "function"
-  spaces
-  name_start <- letter
-  name_end <- many alphaNum
+  skipMany1 space
+  name <- pVarName
+
+  args <- option [] $ do
+    skipMany1 space
+    pFuncArg `sepBy` spaces
 
   spaces
-
-  args <- pFuncArg `sepBy` spaces
   char ':'
+  spaces
 
-  return (name_start:name_end, args)
+  return (name, args)
 
 pFuncArg :: IParser Var
-pFuncArg = do
+pFuncArg = pVar
+
+pVar :: IParser Var
+pVar = do
+  name <- pVarName
+
+  return $ Var name
+
+pStatement :: IParser Statement
+pStatement = choice [ pDeclare
+                    ]
+
+pDeclare :: IParser Statement
+pDeclare = do
+  string "declare"
+  skipMany1 space
+  name <- pVarName
+  newline
+  return $ Declare name
+
+pVarName :: IParser VarName
+pVarName = do
   name_start <- letter
   name_end <- many alphaNum
-
-  return $ Var $ name_start : name_end
-
-pFuncBody :: IParser Statement
-pFuncBody = do -- TODO: implement
-  letter
-  return Halt
+  return $ name_start : name_end
