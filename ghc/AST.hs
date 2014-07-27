@@ -37,9 +37,9 @@ data Statement where
   And             :: VarName -> Expr -> Statement
   Or              :: VarName -> Expr -> Statement
   Xor             :: VarName -> Expr -> Statement
-  IfLT            :: Expr -> Expr -> Statement -> Maybe Statement -> Statement
-  IfEQ            :: Expr -> Expr -> Statement -> Maybe Statement -> Statement
-  IfGT            :: Expr -> Expr -> Statement -> Maybe Statement -> Statement
+  IfLT            :: Expr -> Expr -> Code -> Maybe Code -> Statement
+  IfEQ            :: Expr -> Expr -> Code -> Maybe Code -> Statement
+  IfGT            :: Expr -> Expr -> Code -> Maybe Code -> Statement
   Halt            :: Statement
   Go              :: Expr -> Statement
   GetLMPos        :: Expr -> VarName -> VarName -> Statement

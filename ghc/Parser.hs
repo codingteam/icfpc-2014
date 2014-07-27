@@ -82,6 +82,9 @@ pStatement = choice [ pDeclare
                     , pAnd
                     , pOr
                     , pXor
+                    , pIfLT
+                    , pIfEQ
+                    , pIfGT
                     ]
 
 pDeclare :: IParser Statement
@@ -138,3 +141,50 @@ pInc = genPostfixOfParser "++" Inc
 
 pDec :: IParser Statement
 pDec = genPostfixOfParser "--" Dec
+
+genIfOpParser :: String
+              -> (Expr -> Expr -> Code -> Maybe Code -> Statement)
+              -> IParser Statement
+genIfOpParser op constructor = try $ do
+  (x, y, then_branch) <- withBlock
+    (\(x, y) then_branch -> (x, y, then_branch))
+    (genIfHeaderParser op)
+    pStatement
+
+  else_branch <- optionMaybe pIfElseParser
+
+  return $ constructor x y then_branch else_branch
+
+genIfHeaderParser :: String -> IParser (Expr, Expr)
+genIfHeaderParser op = try $ do
+  string "if"
+  many1 space
+
+  x <- pExpr
+
+  spaces
+  string op
+  spaces
+
+  y <- pExpr
+  spaces
+  char ':'
+  many1 space
+
+  return $ (x, y)
+
+pIfElseParser :: IParser Code
+pIfElseParser = try $ do
+  withBlock
+    (\_ code -> code)
+    (try $ string "else:" >> spaces)
+    pStatement
+
+pIfLT :: IParser Statement
+pIfLT = genIfOpParser ">=" IfLT
+
+pIfEQ :: IParser Statement
+pIfEQ = genIfOpParser "/=" IfEQ
+
+pIfGT :: IParser Statement
+pIfGT = genIfOpParser "<=" IfGT
