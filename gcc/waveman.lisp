@@ -67,10 +67,10 @@
                         (+ 1 (min-4 (eatable-distance-loop state new-visited (to-up coords))
                                     (eatable-distance-loop state new-visited (to-right coords))
                                     (eatable-distance-loop state new-visited (to-down coords))
-                                    (eatable-distance-loop state new-visited (to-left coords)))))
+                                    (eatable-distance-loop state new-visited (to-left coords))))))
                     ((if (= code 1)
                         (0)
-                        (1000000)))))))))
+                        (1000000))))))))
 
     (define (eatable-distance state coords)
         (eatable-distance-loop state (list) coords))
