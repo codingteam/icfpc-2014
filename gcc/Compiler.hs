@@ -167,6 +167,8 @@ compileNode (Let inits body) = do
     i $ RAP n
 compileNode (If condition thenBody elseBody) = do
   ifC (compileNode condition) (forM_ thenBody compileNode) (forM_ elseBody compileNode)
+compileNode (DoWhile body condition) = do
+  doWhileC (forM_ body compileNode) (compileNode condition)
 compileNode x = fail $ "Unsupported node: " ++ show x
 
 ifC :: Compiler () -> Compiler () -> Compiler () -> Compiler ()
@@ -188,4 +190,17 @@ ifC cond true false = do
       liftG $ markHere (MkMark falseMark)
       false
       liftG $ i JOIN
+
+doWhileC :: Compiler () -> Compiler () -> Compiler ()
+doWhileC body cond = do
+  markPrefix <- newName
+  let beginMark = MkMark $ markPrefix ++ "_begin"
+      endMark   = MkMark $ markPrefix ++ "_end"
+  liftG $ markHere beginMark
+  body
+  cond
+  liftG $ do
+    i $ TSEL (Mark beginMark) (Mark endMark)
+    markHere endMark
+
 

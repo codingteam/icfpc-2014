@@ -9,6 +9,7 @@ data SyntaxNode = Number Int
                 | Set String SyntaxNode
                 | When SyntaxNode [SyntaxNode]
                 | If SyntaxNode [SyntaxNode] [SyntaxNode]
+                | DoWhile [SyntaxNode] SyntaxNode 
      deriving Show
 
 data VarInit = VarInit String SyntaxNode

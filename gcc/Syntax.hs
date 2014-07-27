@@ -41,6 +41,10 @@ parseList [sIf, sCondition, sThen, sElse] | isAtom sIf && (unAtom sIf) == "if" =
   where condition = parse sCondition
         then' = parseExprList $ unList sThen
         else' = parseExprList $ unList sElse
+parseList (doWhile : rest) | isAtom doWhile && unAtom doWhile == "do" =
+  DoWhile (parseExprList body) (parse condition)
+  where condition = last $ rest
+        body = init $ rest
 parseList (name : args) | isAtom name =
     Call (unAtom name) $ map parse args
 parseList list = error $ (show list) ++ " is invalid expression"

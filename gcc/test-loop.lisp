@@ -1,0 +1,10 @@
+(define (main)
+  (let (x 5
+        y 1)
+    (do (set y (* y x))
+        (dbug x)
+        (set x (- x 1))
+     (gt x 1))
+    (dbug y)
+  )
+)
