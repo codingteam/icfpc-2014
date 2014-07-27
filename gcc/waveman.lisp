@@ -1,6 +1,5 @@
 (define (main state reserved)
     (dbug 0)
-    (dbug state)
     (define (elt2 lst coords)
       (dbug 1)
       (elt (elt lst (cdr coords)) (car coords))
@@ -80,12 +79,9 @@
         (if (empty-list ghosts)
             (0)
             ((let (ghost (car ghosts))
-                (dbug 151)
                 (let (ghost-pos (car (cdr ghost)))
-                    (dbug 152)
                     (let (ghost-x (car ghost-pos)
                           ghost-y (cdr ghost-pos))
-                        (dbug 153)
                         (if (= x ghost-x)
                             ((if (= y ghost-y)
                                 (1)
@@ -146,7 +142,6 @@
 
     (define (eatable-distance-loop state visited coords)
         (dbug 22)
-        (dbug coords)
         (if (has-coords visited coords)
             (1000000)
             ((let (code (get-code state coords))
@@ -162,7 +157,6 @@
 
     (define (eatable-distance state coords)
         (dbug 23)
-        (dbug coords)
         (eatable-distance-loop state 0 coords))
 
     (define (min-4 a b c d)
@@ -213,7 +207,6 @@
         (let (grid (car world-state)
               man  (elt world-state 1))
             (let (loc (location man))
-                (dbug loc)
                 (pair ai-state (wave-search world-state loc)))))
 
     (pair 0 step))
