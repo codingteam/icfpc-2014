@@ -220,7 +220,7 @@
     (define (find-walls map)
       (let (row-index 0
             col-index 0
-            walls (btree-init))
+            walls nil)
         (let (current-row map
               other-rows map)
           (do
@@ -232,7 +232,7 @@
               (do
                 (set cell (car other-cells))
                 (set other-cells (cdr other-cells))
-                (if (= cell 0)
+                (if (= cell WALL)
                   (
                    (set walls (cons (cons col-index row-index) walls))
                   )
@@ -250,5 +250,39 @@
       )
     )
 
-    (cons (find-walls (car state)) step))
+    (define (find-powerpills map)
+      (let (row-index 0
+            col-index 0
+            powerpills nil)
+        (let (current-row map
+              other-rows map)
+          (do
+            (set current-row (car other-rows))
+            (set other-rows (cdr other-rows))
+            (let (cell current-row
+                  other-cells current-row)
+              (set col-index 0)
+              (do
+                (set cell (car other-cells))
+                (set other-cells (cdr other-cells))
+                (if (= cell POWERPILL)
+                  (
+                   (set powerpills (cons (cons col-index row-index) powerpills))
+                  )
+                  ()
+                )
+                (set col-index (+ col-index 1))
+                (= 0 (atom other-cells))
+              )
+            )
+            (set row-index (+ row-index 1))
+            (= 0 (atom other-rows))
+          )
+        )
+        powerpills
+      )
+    )
+
+    (cons (find-walls (car state)) step)
+)
 
