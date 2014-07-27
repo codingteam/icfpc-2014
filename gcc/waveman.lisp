@@ -68,8 +68,8 @@
         (let (map (car state))
             (elt2 map coords)))
 
-    (define (is-passable walls coords)
-        (not (has-coords walls coords))
+    (define (is-passable cell)
+      cell
     )
 
     (define (is-ghost-loop ghosts x y)
@@ -108,23 +108,16 @@
                 (TRUE)
                 ((is-fruit cell state coords))))))
 
-    (define (get-code walls state coords)
 
-        (if (has-coords walls coords)
-          (WALLCODE)
-          (
-           (if (is-ghost state coords)
-              (GHOST)
-              (
-               (let (cell (get-cell state coords))
-                        (if (is-eatable cell state coords)
-                            (EATABLE)
-                            (0)))
-              )
-          )
-        )
-      )
-    )
+   (define (get-code state coords)
+       (let (cell (get-cell state coords))
+           (if (is-passable cell)
+               ((if (is-ghost state coords)
+                   (GHOST)
+                   ((if (is-eatable cell state coords)
+                       (EATABLE)
+                       (0)))))
+               (GHOST))))
 
     (define (empty-list list)
         (atom list))
@@ -160,11 +153,11 @@
 
         (min-4 a b 1000000 1000000))
 
-    (define (eatable-distance-loop walls state visited-tree coords len max-len)
+    (define (eatable-distance-loop state visited-tree coords len max-len)
 
         (if (geq len max-len)
             (1000000)
-            ((let (code (get-code walls state coords)
+            ((let (code (get-code state coords)
                    current-len (+ len 1))
                 (if (geq code WALLCODE)
                     (1000000)
@@ -172,19 +165,19 @@
                         (if (car append-result)
                             ((if (= code 0)
                                 ((let (new-visited (cdr append-result))
-                                    (let (result-1 (eatable-distance-loop walls state new-visited (at-up coords) current-len max-len))
-                                        (let (result-2 (eatable-distance-loop walls state new-visited (at-right coords) current-len result-1))
-                                            (let (result-3 (eatable-distance-loop walls state new-visited (at-down coords) current-len (min-2 result-1 result-2)))
-                                                (let (result-4 (eatable-distance-loop walls state new-visited (at-left coords) current-len (min-3 result-1 result-2 result-3)))
+                                    (let (result-1 (eatable-distance-loop state new-visited (at-up coords) current-len max-len))
+                                        (let (result-2 (eatable-distance-loop state new-visited (at-right coords) current-len result-1))
+                                            (let (result-3 (eatable-distance-loop state new-visited (at-down coords) current-len (min-2 result-1 result-2)))
+                                                (let (result-4 (eatable-distance-loop state new-visited (at-left coords) current-len (min-3 result-1 result-2 result-3)))
                                                     (+ 1 (min-4 result-1 result-2 result-3 result-4))))))))
                                 ((if (= code EATABLE)
                                     (0)
                                     (1000000)))))
                             (1000000)))))))))
 
-    (define (eatable-distance walls state coords)
+    (define (eatable-distance state coords)
 
-        (eatable-distance-loop walls state (btree-init) coords 0 1000000))
+        (eatable-distance-loop state (btree-init) coords 0 1000000))
 
     (define (min-idx-4 a b c d)
 
@@ -204,52 +197,19 @@
                     (3)
                     (0)))))))
 
-    (define (wave-search state walls coords direction)
+    (define (wave-search state coords direction)
 
-        (min-idx-4 (if (= direction DOWN)  (1000000) ((eatable-distance walls state (at-up coords))))
-                   (if (= direction LEFT)  (1000000) ((eatable-distance walls state (at-right coords))))
-                   (if (= direction UP)    (1000000) ((eatable-distance walls state (at-down coords))))
-                   (if (= direction RIGHT) (1000000) ((eatable-distance walls state (at-left coords))))))
+        (min-idx-4 (if (= direction DOWN)  (1000000) ((eatable-distance state (at-up coords))))
+                   (if (= direction LEFT)  (1000000) ((eatable-distance state (at-right coords))))
+                   (if (= direction UP)    (1000000) ((eatable-distance state (at-down coords))))
+                   (if (= direction RIGHT) (1000000) ((eatable-distance state (at-left coords))))))
 
-    (define (step walls world-state)
+    (define (step ai-state world-state)
         (let (man (elt world-state 1))
             (let (loc (location man)
                   dir (direction man))
-                (cons walls (wave-search world-state walls loc dir)))))
+                (cons ai-state (wave-search world-state loc dir)))))
     
-    (define (find-walls map)
-      (let (row-index 0
-            col-index 0
-            walls nil)
-        (let (current-row map
-              other-rows map)
-          (do
-            (set current-row (car other-rows))
-            (set other-rows (cdr other-rows))
-            (let (cell current-row
-                  other-cells current-row)
-              (set col-index 0)
-              (do
-                (set cell (car other-cells))
-                (set other-cells (cdr other-cells))
-                (if (= cell WALL)
-                  (
-                   (set walls (cons (cons col-index row-index) walls))
-                  )
-                  ()
-                )
-                (set col-index (+ col-index 1))
-                (= 0 (atom other-cells))
-              )
-            )
-            (set row-index (+ row-index 1))
-            (= 0 (atom other-rows))
-          )
-        )
-        walls
-      )
-    )
-
     (define (find-powerpills map)
       (let (row-index 0
             col-index 0
@@ -283,6 +243,6 @@
       )
     )
 
-    (cons (find-walls (car state)) step)
+    (cons nil step)
 )
 
