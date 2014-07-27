@@ -38,7 +38,7 @@ pFuncHeader :: IParser (FuncName, FuncArgs)
 pFuncHeader = do
   string "function"
   skipMany1 space
-  name <- pVarName
+  name <- pFuncName
 
   args <- option [] $ do
     skipMany1 space
@@ -305,7 +305,7 @@ pCall = try $ do
   string "call"
   many1 space
   f <- pFuncName
-  skipMany space
-  args <- try pExpr `sepEndBy` many1 space
-  spaces
+  args <- do
+    skipMany1 space
+    pExpr `sepEndBy` many1 space
   return $ Call f args
