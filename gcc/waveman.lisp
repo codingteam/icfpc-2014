@@ -114,7 +114,7 @@
     (define (fruit-score cell state coords)
         (if (= cell FRUIT)
             ((let (fruit-state (cdr (cdr (cdr state))))
-                (* fruit-state 500)
+                2000
             ))
             (0)
         )
@@ -132,7 +132,10 @@
        (let (cell (get-cell state coords))
            (if (is-passable cell)
                ((if (is-ghost state coords)
-                   (GHOST)
+                   ((if (is-brave state)
+                     (500)
+                     (GHOST)
+                   ))
                    ((eatable-score cell state coords))
                ))
                (WALLCODE))))
@@ -146,7 +149,6 @@
 #include "btree.lisp"
 
     (define (min-4 a b c d)
-
         (if (geq a b)
             ((if (geq b c)
                 ((if (geq c d)
@@ -164,27 +166,33 @@
                     (a)))))))
 
     (define (min-3 a b c)
-
         (min-4 a b c INFINITY))
 
     (define (min-2 a b)
-
         (min-4 a b INFINITY INFINITY))
+    
+    (define (is-brave state)
+         (let (man (car (cdr state)))
+            (let (lives (elt man 3)
+                  vitality (car man))
+              (+ (gt lives 1) vitality)
+            )
+         )
+    )
 
     (define (eatable-distance-loop penalty old state visited-tree coords dir len max-len)
         (if (geq len max-len)
             (max-len)
             (
              (if (btree-check old coords)
-              ((dbug (cons dir (cons penalty (cons len max-len))))
-               penalty)
+              ((if (is-ghost state coords)
+                 ((+ penalty GHOST))
+                 (penalty)
+              ))
               ((let (code (get-code state coords)
                      current-len (+ len 1)
-                     penalty (+ penalty VISITED_PENALTY)
-                     man (car (cdr state)))
-                (let (lives (elt man 3)
-                      vitality (car man))
-                   (let (to-stop (if (+ (= lives 3) vitality)
+                    )
+                   (let (to-stop (if (is-brave state)
                                    ((= code WALLCODE))
                                    ((geq code WALLCODE))
                                  ) )
@@ -209,7 +217,6 @@
                        ))
                     )
                   )
-                )
               ))
              )
            )
@@ -222,7 +229,7 @@
 
     (define (min-idx-4 dir a b c d)
       (if (= (+ (geq a INFINITY) (+ (geq b INFINITY) (+ (geq c INFINITY) (geq d INFINITY)))) 4)
-        ((rotate-clockwise dir))
+        ((opposite dir))
         (
           (if (geq a b)
               ((if (geq b c)
@@ -255,11 +262,27 @@
         (let (man (elt world-state 1))
             (let (loc (location man)
                   dir (direction man)
-                  penalty (car ai-state)
-                  visited (cdr ai-state))
+                  counter (car ai-state)
+                  penalty (car (cdr ai-state))
+                  visited (cdr (cdr ai-state))
+                 )
+              (set counter (+ counter 1))
+              (if (= counter 300)
+                ((set counter 0)
+                 (set penalty 0)
+                 (set dir (rotate-counter-clockwise dir))
+                )
+                ()
+              )
+              (dbug counter)
               (let (append-result (btree-append visited loc))
                 (cons
-                  (cons (+ penalty VISITED_PENALTY) (cdr append-result))
+                  (cons counter
+                      (cons
+                        (+ penalty VISITED_PENALTY)
+                        (cdr append-result)
+                      )
+                  )
                   (wave-search world-state penalty visited loc dir)
                 )
               )
@@ -300,6 +323,6 @@
       )
     )
 
-    (cons (cons VISITED_PENALTY nil) step)
+    (cons (cons 0 (cons VISITED_PENALTY nil)) step)
 )
 
