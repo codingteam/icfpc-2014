@@ -73,10 +73,12 @@ pExpr = choice [ pConst, pVar ]
 pStatement :: IParser Statement
 pStatement = choice [ pDeclare
                     , pAssign
+                    , pInc
+                    , pDec
                     ]
 
 pDeclare :: IParser Statement
-pDeclare = do
+pDeclare = try $ do
   string "declare"
   skipMany1 space
   name <- pVarName
@@ -84,7 +86,7 @@ pDeclare = do
   return $ Declare name
 
 pAssign :: IParser Statement
-pAssign = do
+pAssign = try $ do
   dest <- pVarName
   spaces
   char '='
@@ -92,3 +94,17 @@ pAssign = do
   src <- pExpr
   spaces
   return $ Assign dest src
+
+pInc :: IParser Statement
+pInc = try $ do
+  var <- pVarName
+  string "++"
+  spaces
+  return $ Inc var
+
+pDec :: IParser Statement
+pDec = try $ do
+  var <- pVarName
+  string "--"
+  spaces
+  return $ Inc var
