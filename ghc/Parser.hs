@@ -75,6 +75,13 @@ pStatement = choice [ pDeclare
                     , pAssign
                     , pInc
                     , pDec
+                    , pAdd
+                    , pSub
+                    , pMul
+                    , pDiv
+                    , pAnd
+                    , pOr
+                    , pXor
                     ]
 
 pDeclare :: IParser Statement
@@ -85,26 +92,49 @@ pDeclare = try $ do
   spaces
   return $ Declare name
 
-pAssign :: IParser Statement
-pAssign = try $ do
+genBinOpParser :: String -> (VarName -> Expr -> Statement) -> IParser Statement
+genBinOpParser op constructor = try $ do
   dest <- pVarName
   spaces
-  char '='
+  string op
   spaces
   src <- pExpr
   spaces
-  return $ Assign dest src
+  return $ constructor dest src
+
+pAssign :: IParser Statement
+pAssign = genBinOpParser "=" Assign
+
+pAdd :: IParser Statement
+pAdd = genBinOpParser "+=" Add
+
+pSub :: IParser Statement
+pSub = genBinOpParser "-=" Sub
+
+pMul :: IParser Statement
+pMul = genBinOpParser "*=" Mul
+
+pDiv :: IParser Statement
+pDiv = genBinOpParser "/=" Div
+
+pAnd :: IParser Statement
+pAnd = genBinOpParser "&=" And
+
+pOr :: IParser Statement
+pOr = genBinOpParser "|=" Or
+
+pXor :: IParser Statement
+pXor = genBinOpParser "^=" Xor
+
+genPostfixOfParser :: String -> (VarName -> Statement) -> IParser Statement
+genPostfixOfParser op constructor = try $ do
+  var <- pVarName
+  string op
+  spaces
+  return $ constructor var
 
 pInc :: IParser Statement
-pInc = try $ do
-  var <- pVarName
-  string "++"
-  spaces
-  return $ Inc var
+pInc = genPostfixOfParser "++" Inc
 
 pDec :: IParser Statement
-pDec = try $ do
-  var <- pVarName
-  string "--"
-  spaces
-  return $ Inc var
+pDec = genPostfixOfParser "--" Dec
