@@ -18,4 +18,9 @@
 
 #define GHOST 20
 #define EATABLE 1
+#define PASSABLE 0
 #define WALLCODE 10
+
+#define VISITED_PENALTY 1000
+#define INFINITY 1000000
+
