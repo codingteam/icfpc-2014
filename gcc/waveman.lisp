@@ -52,11 +52,11 @@
         (let (cell (get-cell state coords))
             (if (is-passable cell)
                 ((if (is-ghost cell)
-                    (-2)
+                    (20)
                     ((if (is-eatable cell)
                         (1)
                         (0)))))
-                (-1))))
+                (10))))
 
     (define (eatable-distance-loop state visited coords)
         (if (has-coords visited coords)
