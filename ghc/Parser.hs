@@ -51,10 +51,10 @@ pFuncHeader = do
   return (name, args)
 
 pFuncArg :: IParser VarName
-pFuncArg = pVarName
+pFuncArg = pVarName <?> "function argument"
 
 pFuncName :: IParser FuncName
-pFuncName = pVarName
+pFuncName = pVarName <?> "Function name"
 
 pVarName :: IParser VarName
 pVarName = do
