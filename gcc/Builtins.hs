@@ -18,7 +18,6 @@ builtins = M.fromList [("+", add),
                        ("=", equal),
                        ("gt", greater),
                        ("geq", greaterOrEqual),
-                       ("pair", pair),
                        ("car", car),
                        ("cdr", cdr),
                        ("list", list),
@@ -66,9 +65,6 @@ greater = binary CGT
 
 greaterOrEqual :: Builtin
 greaterOrEqual = binary CGTE
-
-pair :: Builtin
-pair = binary CONS
 
 car :: Builtin
 car = unary CAR
