@@ -1,2 +1,2 @@
 function main:
-  call f a
+  call f a 

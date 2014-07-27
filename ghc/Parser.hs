@@ -63,7 +63,7 @@ pVarName = do
   return $ name_start : name_end
 
 pExpr :: IParser Expr
-pExpr = choice [ pConst, pRef, pDeref, pVar ]
+pExpr = choice [ pConst, pRef, pDeref, pVar ] <?> "expression"
   where
   pConst = try $ do
     number <- many1 digit
@@ -305,8 +305,7 @@ pCall = try $ do
   string "call"
   many1 space
   f <- pFuncName
-  args <- option [] $ try $ do
-    skipMany1 space
-    pExpr `sepBy` many1 space
+  skipMany space
+  args <- try pExpr `sepEndBy` many1 space
   spaces
   return $ Call f args
