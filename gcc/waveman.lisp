@@ -63,8 +63,11 @@
                         (0)))))
                 (10))))
 
+    (define (empty-list list)
+        (= list 0))
+
     (define (has-coords list coords)
-        (if (atom list)
+        (if (empty-list list)
             (0)
             ((let (x1   (car coords)
                    y1   (cdr coords)
