@@ -95,7 +95,7 @@
 
     (define (is-ghost state coords)
         (dbug 16)
-        (let (ghosts (car (cdr state))
+        (let (ghosts (car (cdr (cdr state)))
               x (car coords)
               y (cdr coords))
             (is-ghost-loop ghosts x y)))
