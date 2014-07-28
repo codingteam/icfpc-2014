@@ -4,6 +4,7 @@ module AST where
 data SyntaxNode = Number Int
                 | Identifier String
                 | Call String [SyntaxNode]
+                | CallQ SyntaxNode [SyntaxNode]
                 | Define String [String] [SyntaxNode]
                 | Let [VarInit] [SyntaxNode]
                 | Set String SyntaxNode

@@ -32,6 +32,8 @@ parseList (let_ : initializers : body) | isAtom let_ && (unAtom let_) == "let" =
           pairs (a:b:c) = (a, b) : pairs c
           pairs x = error $ "Invalid initializers in Let: " ++ show x
           inits = map (\(n, e) -> parseVarInit n e) $ pairs (unList initializers)
+parseList (call: func : args) | isAtom call && unAtom call == "call" =
+  CallQ (parse func) (map parse args)
 parseList [when, sCondition, sBody] | isAtom when && (unAtom when) == "when" =
   When condition body
   where condition = parse sCondition

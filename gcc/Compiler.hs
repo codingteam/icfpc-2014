@@ -140,6 +140,11 @@ compileNode (Define name (args) body) = do
   cxts <- gets csContexts
   rememberC name $ compileFunctionBody cxts name args body
 compileNode (Identifier name) = getVariable name
+compileNode (CallQ func args) = do
+  forM_ args compileNode
+  compileNode func
+  liftG $ do
+    i $ AP $ length args
 compileNode (Call funcName args) = do
   forM_ args compileNode
   liftG $ if isBuiltin funcName
@@ -154,7 +159,6 @@ compileNode (Set name value) = do
   case mbVar of
     Nothing -> fail $ "Unknown variable in set: " ++ name
     Just (m, n) -> liftG $ i $ ST m n
-
 compileNode (Let inits body) = do
   name <- newName
   cxts <- gets csContexts
@@ -167,9 +171,22 @@ compileNode (Let inits body) = do
     i $ RAP n
 compileNode (If condition thenBody elseBody) = do
   ifC (compileNode condition) (forM_ thenBody compileNode) (forM_ elseBody compileNode)
+compileNode (When condition body) = do
+  whenC (compileNode condition) (forM_ body compileNode)
 compileNode (DoWhile body condition) = do
   doWhileC (forM_ body compileNode) (compileNode condition)
 compileNode x = fail $ "Unsupported node: " ++ show x
+
+whenC :: Compiler () -> Compiler () -> Compiler ()
+whenC cond body = do
+  cond
+  markPrefix <- newName
+  let markTrue = MkMark $ markPrefix ++ "_true"
+      markFalse = MkMark $ markPrefix ++ "_false"
+  liftG $ i $ TSEL (Mark markTrue) (Mark markFalse)
+  liftG $ markHere markTrue
+  body
+  liftG $ markHere markFalse
 
 ifC :: Compiler () -> Compiler () -> Compiler () -> Compiler ()
 ifC cond true false = do
