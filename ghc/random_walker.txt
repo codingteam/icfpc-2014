@@ -1,0 +1,160 @@
+; cell 4 contains randomness; let's stir it with the last movements vectors
+xor [4], [2]
+xor [4], [3]
+
+; reset the cell that stores possible movement directions - we're in a brand new position and don't know nothing
+xor [2], [2]
+
+; find out who the hell we are
+int 3
+; register A now holds current ghost's index
+
+; find out where the hell we are
+int 4
+; register A now holds our x coordinate
+; register B now holds our y coordinate
+
+; new info - can stir the randomness again!
+xor [4], a
+xor [4], b
+
+; let's put the coordinates aside so that we can re-use them later on
+mov [0], a
+mov [1], b
+
+; what's to the left of us?
+
+; note that we aren't afraid of over- and underflows of coordinates: if such
+; a situation occurs, all we are going to see is a wall on the other end of the
+; map, which is fine for our purposes
+
+dec a
+int 7
+; register A now holds the contents of the square to the left
+
+; stirring randomness again
+xor [4], a
+
+; we only care if it's wall or not
+jeq wall, a, 0
+    ; it's not a wall, we can walk there!
+    or [2], 1 ; setting last bit to one, indicating that we can go left
+::wall
+
+; A is trashed, let's restore it
+mov a, [0]
+
+; find out what is to the right of us
+inc a
+int 7
+
+; stirring randomness again
+xor [4], a
+
+jeq wall, a, 0
+    or [2], 2 ; setting second bit to one, indicating that we can go right
+::wall
+
+; restoring A again
+mov a, [0]
+
+; find out what is above us
+inc b
+int 7
+
+; stirring randomness again
+xor [4], a
+
+jeq wall, a, 0
+    or [2], 4 ; third bit = 1 => can go up
+::wall
+
+mov b, [1]
+inc b
+int 7
+jeq wall, a, 0
+    or [2], 8 ; fourth bit = 1 => can go down
+::wall
+
+; back up possible directions - we will manipulate [2] a lot now
+mov [3], [2]
+
+xor [2], [4]
+; now we examine [2] to see what direction we will go
+; we just `and` it with 1, 2, 4 and 8, and go in the first direction that gives us "true"
+; if all of them turn out to be "false", we go in the first direction possible
+
+or [2], 254
+jlt next, [2], 255
+    ; go left
+    mov a, 3
+    int 1
+    hlt
+::next
+
+mov [2], [3]
+xor [2], [4]
+or [2], 253
+jlt next, [2], 255
+    ; go right
+    mov a, 1
+    int 1
+    hlt
+::next
+
+mov [2], [3]
+xor [2], [4]
+or [2], 251
+jlt next, [2], 255
+    ; go up
+    mov a, 0
+    int 1
+    hlt
+::next
+
+mov [2], [3]
+xor [2], [4]
+or [2], 247
+jlt next, [2], 255
+    ; go down
+    mov a, 2
+    int 1
+    hlt
+::next
+
+; if we reached this point, randomness didn't decide where we should go; so we will go in the first direction available
+mov [2], [3]
+or [2], 254
+jlt next, [2], 255
+    ; go left
+    mov a, 3
+    int 1
+    hlt
+::next
+
+mov [2], [3]
+or [2], 253
+jlt next, [2], 255
+    ; go right
+    mov a, 1
+    int 1
+    hlt
+::next
+
+mov [2], [3]
+or [2], 251
+jlt next, [2], 255
+    ; go up
+    mov a, 0
+    int 1
+    hlt
+::next
+
+mov [2], [3]
+or [2], 247
+jlt next, [2], 255
+    ; go down
+    mov a, 2
+    int 1
+    hlt
+::next

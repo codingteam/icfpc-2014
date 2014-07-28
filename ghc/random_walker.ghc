@@ -1,0 +1,66 @@
+add c, [2]
+xor c, [3]
+xor [2], [2]
+int 3
+int 4
+add c, a
+xor c, b
+mov [0], a
+mov [1], b
+dec a
+int 7
+int 1
+jeq 15, a, 0
+or [2], 1
+mov a, [0]
+inc a
+int 7
+int 1
+jeq 21, a, 0
+or [2], 2
+mov a, [0]
+inc b
+int 7
+int 1
+jeq 27, a, 0
+or [2], 4
+mov b, [1]
+inc b
+int 7
+jeq 32, a, 0
+mov [2], 15
+mov [3], [2]
+xor [2], c
+or [2], 254
+jlt 41, [2], 255
+mov a, 3
+int 0
+mov b, [2]
+int 8
+hlt
+mov [2], [3]
+xor [2], c
+or [2], 253
+jlt 50, [2], 255
+mov a, 1
+int 0
+mov b, [2]
+int 8
+hlt
+mov [2], [3]
+xor [2], c
+or [2], 251
+jlt 57, [2], 255
+mov a, 0
+int 0
+mov b, [2]
+int 8
+hlt
+mov [2], [3]
+xor [2], c
+or [2], 247
+jlt 66, [2], 255
+mov a, 2
+int 0
+hlt
+hlt
