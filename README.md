@@ -1,5 +1,5 @@
-codingteam ICFPC submission
-===========================
+codingteam ICFP Programming Contest 2014 submission
+===================================================
 
 We've prepared Scheme-like Lisp dialect for GCC and have written the compiler in
 Haskell.
@@ -7,8 +7,8 @@ Haskell.
 Ghost code included is taken from sample because we haven't still managed to
 make our own ghost :(
 
-Hopefully my teammates will submit new version with the ghost implementation.
-~ F.
+(Ghost walker sample placed in the `ghc` branch but it was ready to late to be
+submitted.)
 
 Building the project
 --------------------
@@ -21,13 +21,10 @@ Building the project
 Participants
 ------------
 
-portnov
-
-ForNeVeR
-
-rexim
-
-Minoru
+- @portnov
+- @ForNeVeR
+- @rexim
+- @Minoru
 
 Details
 --------
