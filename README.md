@@ -7,7 +7,7 @@ Haskell.
 Ghost code included is taken from sample because we haven't still managed to
 make our own ghost :(
 
-(Ghost walker sample placed in the `ghc` branch but it was ready to late to be
+(Ghost walker sample placed in the `ghc` branch but it was ready too late to be
 submitted.)
 
 Building the project
