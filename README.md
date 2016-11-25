@@ -13,10 +13,12 @@ submitted.)
 Building the project
 --------------------
 
-    $ cd gcc
-		$ cabal install --only-dependencies
-		$ cabal build
-		$ .\dist\build\gcc-compiler\gcc-compiler.exe compile .\waveman.lisp waveman.gcc
+```console
+$ cd gcc
+$ cabal install --only-dependencies
+$ cabal build
+$ .\dist\build\gcc-compiler\gcc-compiler.exe compile .\waveman.lisp waveman.gcc
+```
 
 Participants
 ------------
